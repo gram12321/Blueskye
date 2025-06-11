@@ -50,21 +50,12 @@ Additional instructions for automated coding tools can be found in **.cursor/ai-
   - **Persistent Storage**: All company data is securely stored in LocalStorage
 
 ### 3. Inventory System
-
-
 ### 4. Market System
-
 ### 5. Production System (Buildings)
-
-
 ### 6. Population System
-
 ### 7. Tradepedia
-
 - **Key Files**: `src/components/views/TradepediaView.tsx`, 
-
 - **Description**: Provides informational views on game mechanics. Includes tabs for:
-  
 
 ### 8. Tutorial System
 NOT YET IMPLEMENTED
@@ -92,11 +83,9 @@ NOT YET IMPLEMENTED
 If you are editing  the finance system, start you response with "Blueskye: Have read the Readme.md and Ai-Rules.mdc - now editing finance system"
 
 NOT IMPLEMENTED
-
 - **Key Files**: `src/components/views/FinanceView.tsx`, `src/components/views/CompanyView.tsx`, `src/lib/gamemechanics/gameState.ts`, `src/lib/resources/core/resourceService.ts`, `src/lib/buildings/buildingService.ts`
 
 - **Description**: Tracks the company's financial health. 
-
 - **Core Metrics**:
   - **Cash Balance**: 
   - **Inventory Value**: // Posible implementation
@@ -107,11 +96,8 @@ NOT IMPLEMENTED
   - `CompanyView.tsx`: Displays a summary overview of Cash, Inventory Value, Building Value, and Total Company Value. // Posible implementation
 
 ### 10. Highscore System (Firebase Exception)
-
 // Not implemented may be able to copy entirely from Simulus iteration
-
 - **Key Files**: `src/lib/highscore/highscoreService.ts`, `src/lib/firebase/firebaseConfig.ts`, `src/components/views/HighscoreView.tsx`, `src/components/views/CompanyView.tsx`
-
 - **Description**: Implements a global cross-player highscore leaderboard with multiple ranking categories.
 - **Firebase Usage**: **CRITICAL NOTE:** This system uses Google Firebase Firestore as an exception to the project's standard LocalStorage-only data persistence rule. Firebase is used *exclusively* for storing and retrieving highscore data. Separate Firestore collections for each leaderboard type
 - **Strict Limitation**: The use of Firebase is **STRICTLY LIMITED** to this highscore functionality. No other game data or logic should use Firebase or any external database unless explicitly approved by the user for a specific feature.
@@ -119,7 +105,6 @@ NOT IMPLEMENTED
   - **Gold**: ,  **Company Value**: , **Gold Per Day**: **Company Value Per Day**:
 
 ## Technical Architecture
-
 ### Helper Systems
 
 - **Display Management** (`src/lib/gamemechanics/displayManager.ts`): Provides a subscription-based system (`subscribe`, `unsubscribe`) and React hook (`useDisplayUpdate`) / HOC (`withDisplayUpdate`) to trigger UI refreshes on game state changes.
