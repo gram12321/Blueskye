@@ -85,4 +85,4 @@ tmp/
 temp/
 
 # Project specific
-oldIterations/ 
+.oldIterations/ 
