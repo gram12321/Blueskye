@@ -15,15 +15,15 @@ import { getHighscores, ScoreType } from '@/lib/highscore/highscoreService';
 export interface CompanyInfo {
   // Basic info
   name: string;
-  week?: number;
-  season?: Season;
-  year?: number;
+  week: number;
+  season: Season;
+  year: number;
   
   // Financial data
   money: number;
   companyValue: number;
-  fleetValue?: number;
-  buildingValue?: number;
+  fleetValue: number;
+  buildingValue: number;
   
   // Time info
   createdAt: Date;
@@ -38,7 +38,7 @@ export interface CompanyInfo {
   };
   
   // Player ownership
-  isOwnedByCurrentPlayer?: boolean;
+  isOwnedByCurrentPlayer: boolean;
 }
 
 /**

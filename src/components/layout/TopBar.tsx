@@ -1,5 +1,4 @@
-import { getGameState } from '@/lib/gamemechanics/gameState';
-import { advanceWeek } from '@/lib/gamemechanics/gameState';
+import { getGameState, advanceWeek } from '../../lib/gamemechanics/gameState';
 import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
 import displayManager, { useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
@@ -8,14 +7,15 @@ import { Badge } from '@/components/ui/ShadCN/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/ShadCN/Avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/ShadCN/DropdownMenu';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN/NavigationMenu';
-import { MenuIcon, User, Settings, ShieldCheck, Trophy, LogOut, X } from 'lucide-react';
+import { MenuIcon, User, Settings, ShieldCheck, LogOut } from 'lucide-react';
 import { uiEmojis } from '@/components/ui/resources/emojiMap';
 import { useState } from 'react';
+import playerService from '../../lib/player/playerService';
+import type { View } from '../../App';
 
 interface TopBarProps {
-  readonly view: string;
-  readonly setView: (view: string) => void;
-  readonly onLogout: () => void;
+  readonly currentView: View;
+  readonly setView: (view: View) => void;
 }
 
 interface NavigationItem {
@@ -31,7 +31,7 @@ const navigation: NavigationItem[] = [
   { name: 'Tradepedia', view: 'Tradepedia', icon: uiEmojis.book },
 ];
 
-export default function TopBar({ view, setView, onLogout }: TopBarProps) {
+export function TopBar({ currentView, setView }: TopBarProps) {
   useDisplayUpdate();
   const gameState = getGameState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,8 +41,13 @@ export default function TopBar({ view, setView, onLogout }: TopBarProps) {
   });
 
   const handleNavigation = (newView: string) => {
-    setView(newView);
+    setView(newView as View);
     setMobileMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    playerService.logout();
+    setView('Login');
   };
 
   const formattedDate = formatGameDate({
@@ -74,7 +79,7 @@ export default function TopBar({ view, setView, onLogout }: TopBarProps) {
                       onClick={() => handleNavigation(item.view)}
                       className={cn(
                         "text-primary-foreground px-2",
-                        view === item.view ? "bg-[hsl(var(--primary))]/20" : ""
+                        currentView === item.view ? "bg-[hsl(var(--primary))]/20" : ""
                       )}
                     >
                       <span className="mr-2">{item.icon}</span>
@@ -177,13 +182,11 @@ export default function TopBar({ view, setView, onLogout }: TopBarProps) {
                 {[
                   { view: 'Profile', icon: User },
                   { view: 'Settings', icon: Settings },
-                  { view: 'AdminDashboard', icon: ShieldCheck, label: 'Admin Dashboard' },
-                  { view: 'Achievements', icon: Trophy },
-                  { view: 'Highscore', icon: Trophy, label: 'Highscores' }
+                  { view: 'Admin', icon: ShieldCheck, label: 'Admin Dashboard' },
                 ].map(({ view: viewName, icon: Icon, label }) => (
                   <DropdownMenuItem 
                     key={viewName} 
-                    onClick={() => handleNavigation(viewName)}
+                    onClick={() => handleNavigation(viewName as View)}
                     id={`nav-${viewName.toLowerCase()}`}
                   >
                     <Icon className="mr-2 h-4 w-4" />
@@ -194,7 +197,7 @@ export default function TopBar({ view, setView, onLogout }: TopBarProps) {
                 <DropdownMenuSeparator />
                 
                 <DropdownMenuItem 
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   className="text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -213,10 +216,10 @@ export default function TopBar({ view, setView, onLogout }: TopBarProps) {
                 <Button
                   key={item.name}
                   variant="ghost"
-                  onClick={() => handleNavigation(item.view)}
+                  onClick={() => handleNavigation(item.view as View)}
                   className={cn(
                     "justify-start text-primary-foreground",
-                    view === item.view ? "bg-[hsl(var(--primary))]/20" : ""
+                    currentView === item.view ? "bg-[hsl(var(--primary))]/20" : ""
                   )}
                 >
                   <span className="mr-2">{item.icon}</span>

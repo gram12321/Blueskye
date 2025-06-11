@@ -1,14 +1,36 @@
 import { useState, useEffect } from 'react'
 import { getGameState, updateGameState } from './lib/gamemechanics/gameState'
-import TopBar from './components/layout/TopBar'
+import { TopBar } from './components/layout/TopBar'
 import { LoginView } from './components/views/LoginView'
 import { CompanyView } from './components/views/CompanyView'
 import { PlaceholderView } from './components/views/PlaceholderView'
+import { ProfileView } from './components/views/ProfileView'
+import { SettingsView } from './components/views/SettingsView'
+import { AdminDashboardView } from './components/views/AdminDashboardView'
 import { uiEmojis } from './components/ui/resources/emojiMap'
+import { useDisplayUpdate } from './lib/gamemechanics/displayManager'
+import './css/styles.css'
+
+export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin'
 
 function App() {
-  const [view, setView] = useState('Login')
+  const [view, setView] = useState<View>('Login')
   const [isInitializing, setIsInitializing] = useState(true)
+  
+  const gameState = getGameState()
+  
+  // Subscribe to display updates
+  useDisplayUpdate()
+  
+  // Check if user is logged in
+  const isLoggedIn = gameState.player !== null
+  
+  // Auto-redirect to login if not logged in (except for certain views)
+  useEffect(() => {
+    if (!isLoggedIn && view !== 'Login' && view !== 'Profile') {
+      setView('Login')
+    }
+  }, [isLoggedIn, view])
   
   useEffect(() => {
     async function init() {
@@ -25,8 +47,6 @@ function App() {
     }
     init()
   }, [])
-  
-  const gameState = getGameState()
   
   const handleLogout = () => {
     // Reset game state
@@ -47,7 +67,7 @@ function App() {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center">
-            <div className="text-6xl mb-4">{uiEmojis.aircraft}</div>
+            <div className="text-6xl mb-4">{uiEmojis.company}</div>
             <p className="text-lg">Loading Blueskye Airways...</p>
           </div>
         </div>
@@ -66,19 +86,16 @@ function App() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <TopBar 
-          view={view} 
+          currentView={view} 
           setView={setView} 
-          onLogout={handleLogout}
         />
         <main className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 mx-auto w-full max-w-5xl">
           {view === 'Company' && <CompanyView />}
           {view === 'Finance' && <PlaceholderView title="Financial Management" icon={uiEmojis.finance} description="Track income, expenses, and financial performance." />}
           {view === 'Tradepedia' && <PlaceholderView title="Aviation Encyclopedia" icon={uiEmojis.book} description="Learn about aircraft, routes, and aviation industry." />}
-          {view === 'Profile' && <PlaceholderView title="Company Profile" icon={uiEmojis.person} description="View and edit your company profile and settings." />}
-          {view === 'Settings' && <PlaceholderView title="Game Settings" icon={uiEmojis.settings} description="Configure game preferences and display options." />}
-          {view === 'AdminDashboard' && <PlaceholderView title="Admin Dashboard" icon="🛡️" description="Administrative tools and game management." />}
-          {view === 'Achievements' && <PlaceholderView title="Achievements" icon={uiEmojis.trophy} description="Track your progress and unlock achievements." />}
-          {view === 'Highscore' && <PlaceholderView title="Leaderboards" icon={uiEmojis.trophy} description="Compare your performance with other airlines." />}
+          {view === 'Profile' && <ProfileView setView={setView} />}
+          {view === 'Settings' && <SettingsView setView={setView} />}
+          {view === 'Admin' && <AdminDashboardView setView={setView} />}
         </main>
       </div>
     )

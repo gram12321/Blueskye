@@ -83,4 +83,39 @@ export function getRandomInt(min: number, max: number): number {
  */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Calculate the absolute week number since the start of the game
+ * This is useful for comparing dates and calculating age in weeks
+ */
+export function calculateAbsoluteWeeks(year: number, season: Season, week: number): number {
+  if (!season || typeof year !== 'number' || typeof week !== 'number') {
+    return 0;
+  }
+  
+  // Calculate how many complete years have passed
+  const yearsSinceStart = year - STARTING_YEAR;
+  
+  // Get the season index (0-3)
+  const seasonIndex = SEASONS.indexOf(season);
+  const startSeasonIndex = SEASONS.indexOf(STARTING_SEASON);
+  
+  if (seasonIndex === -1) {
+    return 0; // Invalid season
+  }
+  
+  // Calculate total weeks
+  let totalWeeks = 0;
+  
+  // Add weeks for complete years
+  totalWeeks += yearsSinceStart * SEASONS_PER_YEAR * WEEKS_PER_SEASON;
+  
+  // Add weeks for complete seasons in current year
+  totalWeeks += (seasonIndex - startSeasonIndex) * WEEKS_PER_SEASON;
+  
+  // Add weeks in current season
+  totalWeeks += (week - STARTING_WEEK);
+  
+  return Math.max(0, totalWeeks);
 } 
