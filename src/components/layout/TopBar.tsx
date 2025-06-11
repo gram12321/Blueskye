@@ -1,4 +1,5 @@
-import { getGameState, advanceWeek } from '../../lib/gamemechanics/gameState';
+import { getGameState } from '../../lib/gamemechanics/gameState';
+import { advanceWeek } from '../../lib/gamemechanics/gameTick';
 import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
 import { displayManager, useDisplayUpdate } from '@/lib/gamemechanics/displayManager';

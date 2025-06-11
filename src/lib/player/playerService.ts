@@ -1,4 +1,4 @@
-import { getGameState, resetGameState, loadGame, createNewPlayer, updateGameState } from '../gamemechanics/gameState';
+import { getGameState, resetGameState, loadGame, createNewPlayer } from '../gamemechanics/gameState';
 import { storageService, PlayerData } from '../localStorage/storageService';
 import { calculateCompanyValue } from '../finance/financeService';
 import { CompanyInfo } from '../../components/views/CompanyView';

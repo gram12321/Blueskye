@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getGameState } from '../../lib/gamemechanics/gameState';
-import { storageService, NotificationSettings } from '../../lib/localStorage/storageService';
+import { storageService } from '../../lib/localStorage/storageService';
 import { tutorialService } from '../../lib/tutorial/tutorialService';
 import { Switch, Label, Card, CardHeader, CardTitle, CardContent, CardDescription, Button } from '../ui/ShadCN';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
@@ -18,9 +18,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
   const [showToastNotification, setShowToastNotification] = useState(false);
   const [tutorialEnabled, setTutorialEnabled] = useState(true);
   const [showDetailedInputSection, setShowDetailedInputSection] = useState(true);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(
-    storageService.getDefaultNotificationSettings()
-  );
   
   // Subscribe to display updates
   useDisplayUpdate();
@@ -31,7 +28,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
       const settings = storageService.loadPlayerSettings(companyName);
       setShowToastNotification(settings.showToastNotification);
       setShowDetailedInputSection(settings.showDetailedInputSection !== false);
-      setNotificationSettings(settings.notifications ?? storageService.getDefaultNotificationSettings());
       
       // Load tutorial state
       const tutorialState = storageService.loadTutorialState(companyName);

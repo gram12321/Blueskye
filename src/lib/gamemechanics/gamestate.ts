@@ -110,28 +110,3 @@ export function createNewPlayer(companyName: string): void {
   });
 }
 
-// Placeholder function for advancing the week
-export function advanceWeek(): void {
-  gameState.week += 1;
-  if (gameState.week > 12) {
-    gameState.week = 1;
-    const seasons: Array<'Spring' | 'Summer' | 'Fall' | 'Winter'> = ['Spring', 'Summer', 'Fall', 'Winter'];
-    const currentSeasonIndex = seasons.indexOf(gameState.season);
-    if (currentSeasonIndex === 3) {
-      gameState.season = 'Spring';
-      gameState.year += 1;
-    } else {
-      gameState.season = seasons[currentSeasonIndex + 1];
-    }
-  }
-  
-  // Update last played time
-  if (gameState.player) {
-    gameState.player.lastPlayed = new Date();
-  }
-  
-  // Auto-save
-  if (gameState.player?.companyName) {
-    storageService.saveGameState(gameState);
-  }
-}

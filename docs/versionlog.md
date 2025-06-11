@@ -1,3 +1,10 @@
+## [0.004]  - 2025-06-12 - Notification system and fixing playerlogin
+
+### Major Features & Changes
+- **Notification System**: Added a notification system for in-game messages to the player.
+- **Player Login**: Fixed the player login system to work correctly.
+- **Game Tick**: Created gameTick.ts to handle the game tick IE advancing the week.
+
 ## [0.003]  - 2025-06-12 - Core systems and UI/UX improvements
 
 ### Major Features & Changes
