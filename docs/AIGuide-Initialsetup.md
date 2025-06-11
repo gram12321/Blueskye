@@ -1,9 +1,4 @@
 What we copy from Simulus: (.oldIterations/Simulus)
- - Login system
-  - Playerservice.ts
-  - LoginView.tsx
-
-
 
 - Topbar.tsx
  - NavigationMenu including dropdowns

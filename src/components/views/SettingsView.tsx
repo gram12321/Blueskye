@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getGameState } from '../../lib/gamemechanics/gameState';
-import storageService, { NotificationSettings } from '../../lib/localStorage/storageService';
-import tutorialService from '../../lib/tutorial/tutorialService';
-import { Switch } from '../ui/ShadCN/Switch';
-import { Label } from '../ui/ShadCN/Label';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/ShadCN/Card';
+import { storageService, NotificationSettings } from '../../lib/localStorage/storageService';
+import { tutorialService } from '../../lib/tutorial/tutorialService';
+import { Switch, Label, Card, CardHeader, CardTitle, CardContent, CardDescription, Button } from '../ui/ShadCN';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { ViewHeader } from '../ui/ViewHeader';
 import { uiEmojis } from '../ui/resources/emojiMap';
-import { Button } from '../ui/ShadCN/Button';
 import type { View } from '../../App';
 
 interface SettingsViewProps {

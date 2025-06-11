@@ -1,7 +1,7 @@
 // Basic game state for Blueskye Air Management Game
 // This is a minimal implementation to support the frontend components
 
-import storageService from '../localStorage/storageService';
+import { storageService } from '../localStorage/storageService';
 
 export interface Player {
   companyName: string;

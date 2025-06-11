@@ -1,5 +1,5 @@
 import { ViewHeader } from '@/components/ui/ViewHeader';
-import { Card, CardContent } from '@/components/ui/ShadCN/Card';
+import { Card, CardContent } from '@/components/ui/ShadCN';
 
 interface PlaceholderViewProps {
   title: string;

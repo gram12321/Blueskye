@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getGameState, updateGameState } from './lib/gamemechanics/gameState'
-import { TopBar } from './components/layout/TopBar'
+import { TopBar } from './components/layout/TopBar' 
 import { LoginView } from './components/views/LoginView'
 import { CompanyView } from './components/views/CompanyView'
 import { PlaceholderView } from './components/views/PlaceholderView'
@@ -9,15 +9,35 @@ import { SettingsView } from './components/views/SettingsView'
 import { AdminDashboardView } from './components/views/AdminDashboardView'
 import { uiEmojis } from './components/ui/resources/emojiMap'
 import { useDisplayUpdate } from './lib/gamemechanics/displayManager'
-import './css/styles.css'
+import { Toaster } from './components/ui/ShadCN/Toaster'
 
 export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin'
 
 function App() {
   const [view, setView] = useState<View>('Login')
   const [isInitializing, setIsInitializing] = useState(true)
+  const [skipAutoLogin, setSkipAutoLogin] = useState(false)
   
   const gameState = getGameState()
+
+  const handleLogout = () => {
+    // Reset game state
+    updateGameState({
+      player: null,
+      week: 1,
+      season: 'Spring',
+      year: 2024,
+      politicalPower: 0,
+      population: [],
+      populationLimit: 100
+    })
+    setSkipAutoLogin(true) // Prevent auto-login after logout
+    setView('Login')
+  }
+
+  const handleManualLogin = () => {
+    setSkipAutoLogin(false) // Re-enable auto-login for future visits
+  }
   
   // Subscribe to display updates
   useDisplayUpdate()
@@ -48,20 +68,6 @@ function App() {
     init()
   }, [])
   
-  const handleLogout = () => {
-    // Reset game state
-    updateGameState({
-      player: null,
-      week: 1,
-      season: 'Spring',
-      year: 2024,
-      politicalPower: 0,
-      population: [],
-      populationLimit: 100
-    })
-    setView('Login')
-  }
-  
   const renderView = () => {
     if (isInitializing) {
       return (
@@ -75,7 +81,7 @@ function App() {
     }
     
     if (view === 'Login') {
-      return <LoginView setView={setView} />
+      return <LoginView setView={setView} skipAutoLogin={skipAutoLogin} onManualLogin={handleManualLogin} />
     }
     
     if (!gameState.player) {
@@ -87,7 +93,8 @@ function App() {
       <div className="min-h-screen bg-background flex flex-col">
         <TopBar 
           currentView={view} 
-          setView={setView} 
+          setView={setView}
+          onLogout={handleLogout}
         />
         <main className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 mx-auto w-full max-w-5xl">
           {view === 'Company' && <CompanyView />}
@@ -101,7 +108,12 @@ function App() {
     )
   }
 
-  return renderView()
+  return (
+    <>
+      {renderView()}
+      <Toaster />
+    </>
+  )
 }
 
-export default App 
+export { App } 

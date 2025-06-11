@@ -1,5 +1,5 @@
 // Tutorial service for Blueskye Air Management Game
-import storageService, { loadAdminSettings } from '../localStorage/storageService';
+import { storageService, loadAdminSettings } from '../localStorage/storageService';
 import { getGameState } from '../gamemechanics/gameState';
 
 interface Tutorial {
@@ -129,4 +129,4 @@ class TutorialService {
 
 // Create and export singleton instance
 const tutorialService = new TutorialService();
-export default tutorialService; 
+export { tutorialService }; 

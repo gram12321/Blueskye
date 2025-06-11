@@ -1,21 +1,12 @@
 import { getGameState } from '../../lib/gamemechanics/gameState';
 import { ViewHeader } from '../ui/ViewHeader';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/ShadCN/Card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Input, Label, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, RadioGroup, RadioGroupItem } from '../ui/ShadCN';
 import { getCurrentPlayer, loginOrCreateCompany, getCompanyDetails } from '../../lib/player/playerService';
 import { useEffect, useState } from 'react';
-import storageService, { PlayerData } from '../../lib/localStorage/storageService';
-import { Badge } from '../ui/ShadCN/Badge';
-import { Button } from '../ui/ShadCN/Button';
+import { storageService, PlayerData } from '../../lib/localStorage/storageService';
 import { formatNumber, formatGameDate, STARTING_YEAR, STARTING_SEASON, STARTING_WEEK, calculateAbsoluteWeeks, Season } from '../../lib/gamemechanics/utils';
 import { formatEuro } from '../ui/resources/emojiMap';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/ShadCN/Tooltip';
 import { CompanyInfo } from './CompanyView';
-import { Input } from '../ui/ShadCN/Input';
-import { Label } from '../ui/ShadCN/Label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/ShadCN/Dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ShadCN/Select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/ShadCN/Tabs';
-import { RadioGroup, RadioGroupItem } from '../ui/ShadCN/RadioGroup';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import type { View } from '../../App';
 

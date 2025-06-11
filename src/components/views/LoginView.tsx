@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/ShadCN/Card';
-import { Button } from '../ui/ShadCN/Button';
-import { Input } from '../ui/ShadCN/Input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Input, Tabs, TabsContent, TabsList, TabsTrigger, Label } from '../ui/ShadCN';
 import { uiEmojis } from '../ui/resources/emojiMap';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
-import playerService, { getCurrentPlayer, createPlayer } from '../../lib/player/playerService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/ShadCN/Tabs';
-import { Label } from '../ui/ShadCN/Label';
+import { playerService, getCurrentPlayer, createPlayer } from '../../lib/player/playerService';
 import type { View } from '../../App';
 
 interface LoginViewProps {
   setView: (view: View) => void;
+  skipAutoLogin?: boolean;
+  onManualLogin?: () => void;
 }
 
-export function LoginView({ setView }: LoginViewProps) {
+export function LoginView({ setView, skipAutoLogin = false, onManualLogin }: LoginViewProps) {
   const [companyName, setCompanyName] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,8 +22,12 @@ export function LoginView({ setView }: LoginViewProps) {
   useDisplayUpdate();
 
   useEffect(() => {
-    // Auto-login if there's an existing company
+    // Auto-login if there's an existing company (but only if not skipping auto-login)
     const attemptAutoLogin = async () => {
+      if (skipAutoLogin) {
+        return; // Skip auto-login if explicitly requested
+      }
+      
       try {
         const result = await playerService.autoLogin();
         if (result.success) {
@@ -38,7 +40,7 @@ export function LoginView({ setView }: LoginViewProps) {
 
     attemptAutoLogin();
     setCurrentPlayer(getCurrentPlayer());
-  }, [setView]);
+  }, [setView, skipAutoLogin]);
 
   const handleLogin = async () => {
     if (!companyName.trim()) {
@@ -53,6 +55,7 @@ export function LoginView({ setView }: LoginViewProps) {
       const result = await playerService.loginOrCreateCompany(companyName.trim());
       
       if (result.success) {
+        onManualLogin?.(); // Reset skipAutoLogin flag
         setView('Company');
       } else {
         setError(result.errorMessage || 'Login failed');

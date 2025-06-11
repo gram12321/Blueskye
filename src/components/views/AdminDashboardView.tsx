@@ -1,16 +1,14 @@
 import { getGameState, resetGameState, updateGameState } from '../../lib/gamemechanics/gameState';
-import storageService, { loadAdminSettings, saveAdminSettings } from '../../lib/localStorage/storageService';
-import playerService from '../../lib/player/playerService';
-import { Button } from '../ui/ShadCN/Button';
-import { ViewHeader } from '../ui/ViewHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/ShadCN/Card';
+import { storageService, loadAdminSettings, saveAdminSettings } from '../../lib/localStorage/storageService';
+import { playerService } from '../../lib/player/playerService';
+import { Button, Card, CardContent, CardHeader, CardTitle, Switch, Label } from '../ui/ShadCN';
 import { uiEmojis } from '../ui/resources/emojiMap';
-import tutorialService from '../../lib/tutorial/tutorialService';
-import { Switch } from '../ui/ShadCN/Switch';
-import { Label } from '../ui/ShadCN/Label';
+import { tutorialService } from '../../lib/tutorial/tutorialService';
 import { useState, useEffect } from 'react';
-import displayManager from '../../lib/gamemechanics/displayManager';
+import { displayManager } from '../../lib/gamemechanics/displayManager';
 import type { View } from '../../App';
+import { ViewHeader } from '../ui/ViewHeader';
+import { notificationService } from '../../lib/notifications/notificationService';
 
 interface AdminDashboardViewProps {
   setView: (view: View) => void;
@@ -41,9 +39,9 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
         storageService.saveAllCompanies(companies);
       }
       
-      // Step 4: Go back to login screen
-      setView('Login');
-      console.log(`Company '${currentCompany}' completely removed`);
+      // Step 4: Go back to company screen
+      setView('Company');
+      notificationService.info(`Company '${currentCompany}' completely removed`, { category: 'Admin' });
     }
   };
   
@@ -51,8 +49,8 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
     // Delete all companies
     storageService.clearAllCompanies();
     playerService.logout();
-    setView('Login');
-    console.log('All companies completely removed');
+    setView('Company');
+    notificationService.info('All companies completely removed', { category: 'Admin' });
   };
   
   const handleClearAllData = () => {
@@ -62,15 +60,15 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
     saveAdminSettings(adminSettings); // Re-save admin settings
     
     playerService.logout();
-    setView('Login');
-    console.log('All localStorage data cleared, except global admin settings.');
+    setView('Company');
+    notificationService.info('All localStorage data cleared, except global admin settings.', { category: 'Admin' });
   };
   
   // Handler for the tutorial toggle switch
   const handleTutorialToggle = (checked: boolean) => {
     tutorialService.setTutorialGloballyDisabled(checked);
     setIsTutorialGloballyDisabled(checked);
-    console.log(`Tutorials globally ${checked ? 'disabled' : 'enabled'}.`);
+    notificationService.info(`Tutorials globally ${checked ? 'disabled' : 'enabled'}.`, { category: 'Admin' });
   };
   
   // Handler for adding money cheat
@@ -79,11 +77,20 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
     if (currentState.player) {
       const newMoney = currentState.player.money + 10000;
       updateGameState({ player: { ...currentState.player, money: newMoney } });
-      console.log(`Added €10,000 (Total: €${newMoney.toLocaleString()})`);
+      notificationService.success(`Added €10,000 (Total: €${newMoney.toLocaleString()})`, { category: 'Admin' });
       displayManager.updateDisplays(); // Ensure UI updates
     } else {
-      console.log('No active player/company to add money to.');
+      notificationService.info('No active player/company to add money to.', { category: 'Admin' });
     }
+  };
+
+  // Test notification functions
+  const handleTestInfo = () => {
+    notificationService.info('This is a test info message from the admin panel!', { category: 'Test' });
+  };
+
+  const handleTestSuccess = () => {
+    notificationService.success('This is a test success message - everything is working!', { category: 'Test' });
   };
   
   return (
@@ -138,6 +145,30 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
                 Add €10,000 {uiEmojis.money}
               </Button>
             </div>
+          </div>
+          
+          {/* Section for Testing Notifications */}
+          <div className="mt-6 border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">Test Notification System</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                variant="outline" 
+                onClick={handleTestInfo}
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200"
+              >
+                Test Info
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleTestSuccess}
+                className="bg-green-50 hover:bg-green-100 border-green-200"
+              >
+                Test Success
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Use these buttons to test the notification system. For debugging errors/warnings, use browser console.
+            </p>
           </div>
           
           {/* Section for Global Settings */}

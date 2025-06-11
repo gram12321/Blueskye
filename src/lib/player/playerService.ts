@@ -1,8 +1,9 @@
 import { getGameState, resetGameState, loadGame, createNewPlayer, updateGameState } from '../gamemechanics/gameState';
-import storageService, { PlayerData } from '../localStorage/storageService';
+import { storageService, PlayerData } from '../localStorage/storageService';
 import { calculateCompanyValue } from '../finance/financeService';
 import { CompanyInfo } from '../../components/views/CompanyView';
-import tutorialService from '../tutorial/tutorialService';
+import { tutorialService } from '../tutorial/tutorialService';
+import { notificationService } from '../notifications/notificationService';
 
 /**
  * Constants for player initialization
@@ -18,7 +19,7 @@ export function initializePlayer(): void {
   // Initialize with starting money (already set in createNewPlayer)
   // Future: Add any initial setup here (aircraft, licenses, etc.)
   
-  console.log(`New company initialized with €${PLAYER_INIT_VALUES.STARTING_MONEY}`);
+  notificationService.success(`New company initialized with €${PLAYER_INIT_VALUES.STARTING_MONEY.toLocaleString()}`, { category: 'Company' });
 }
 
 /**
@@ -97,7 +98,7 @@ export function createPlayer(playerName: string): PlayerData {
   };
   
   storageService.savePlayerData(playerData);
-  console.log(`Welcome, ${playerName}! You can now create companies.`);
+  notificationService.success(`Welcome, ${playerName}! You can now create companies.`, { category: 'Player' });
   
   return playerData;
 }
@@ -131,7 +132,8 @@ export async function loginOrCreateCompany(
       // Load existing company
       if (loadGame(companyName)) {
         tutorialService.initializeTutorialState();
-        console.log(`Welcome back to ${companyName}!`);
+        notificationService.loadMessages(); // Load messages for this company
+        notificationService.info(`Welcome back to ${companyName}!`, { category: 'Company' });
         
         // Associate with current player if needed and not already associated
         if (associateWithCurrentPlayer && storageService.isPlayerSet()) {
@@ -145,9 +147,10 @@ export async function loginOrCreateCompany(
 
     // Create new company
     createNewPlayer(companyName);
+    notificationService.clearMessages(); // Start fresh for new company
     initializePlayer();
     
-    console.log(`Welcome to your new company, ${companyName}!`);
+    notificationService.success(`Welcome to your new company, ${companyName}!`, { category: 'Company' });
 
     tutorialService.initializeTutorialState();
     
@@ -176,8 +179,9 @@ export async function loginOrCreateCompany(
 export function logout(): void {
   const gameState = getGameState();
   if (gameState.player?.companyName) {
+    notificationService.clearMessages(); // Clear messages on logout
     resetGameState();
-    console.log('Logged out successfully');
+    notificationService.info('Logged out successfully', { category: 'Player' });
   }
 }
 
@@ -191,6 +195,7 @@ export async function autoLogin(): Promise<{ success: boolean; companyName?: str
     if (companies.length > 0) {
       if (loadGame(companies[0])) {
         tutorialService.initializeTutorialState();
+        notificationService.loadMessages(); // Load saved messages
         return { success: true, companyName: companies[0] };
       }
     }
@@ -201,8 +206,8 @@ export async function autoLogin(): Promise<{ success: boolean; companyName?: str
   }
 }
 
-// Export the required functions
-export default {
+// Export the required functions as named exports
+export const playerService = {
   loginOrCreateCompany,
   logout,
   autoLogin,

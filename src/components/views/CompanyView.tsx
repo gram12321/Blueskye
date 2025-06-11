@@ -4,7 +4,7 @@ import { useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
 import { formatNumber, formatCurrency, formatGameDate, Season } from '@/lib/gamemechanics/utils';
 import { uiEmojis, formatEuro } from '@/components/ui/resources/emojiMap';
 import { ViewHeader } from '@/components/ui/ViewHeader';
-import { Card, CardContent } from '@/components/ui/ShadCN/Card';
+import { Card, CardContent } from '@/components/ui/ShadCN';
 import { calculateCompanyValue } from '@/lib/finance/financeService';
 import { getHighscores, ScoreType } from '@/lib/highscore/highscoreService';
 

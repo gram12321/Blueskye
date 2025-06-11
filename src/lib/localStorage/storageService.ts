@@ -285,7 +285,7 @@ export function getDefaultNotificationSettings(): NotificationSettings {
   };
 }
 
-// Default export
+// Service object
 const storageService = {
   getAllCompanies,
   saveAllCompanies,
@@ -313,4 +313,4 @@ const storageService = {
   getDefaultNotificationSettings
 };
 
-export default storageService; 
+export { storageService }; 

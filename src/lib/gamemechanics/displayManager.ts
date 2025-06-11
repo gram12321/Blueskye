@@ -57,4 +57,4 @@ const displayManager = {
   updateDisplays
 };
 
-export default displayManager; 
+export { displayManager }; 

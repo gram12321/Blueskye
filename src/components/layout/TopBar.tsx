@@ -1,21 +1,19 @@
 import { getGameState, advanceWeek } from '../../lib/gamemechanics/gameState';
 import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
-import displayManager, { useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
-import { Button } from '@/components/ui/ShadCN/Button';
-import { Badge } from '@/components/ui/ShadCN/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/ShadCN/Avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/ShadCN/DropdownMenu';
-import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN/NavigationMenu';
+import { displayManager, useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
+import { Button, Badge, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN';
 import { MenuIcon, User, Settings, ShieldCheck, LogOut } from 'lucide-react';
 import { uiEmojis } from '@/components/ui/resources/emojiMap';
 import { useState } from 'react';
-import playerService from '../../lib/player/playerService';
+import { playerService } from '../../lib/player/playerService';
 import type { View } from '../../App';
+import { MessageLog } from '../ui/MessageLog';
 
 interface TopBarProps {
   readonly currentView: View;
   readonly setView: (view: View) => void;
+  readonly onLogout: () => void;
 }
 
 interface NavigationItem {
@@ -31,7 +29,7 @@ const navigation: NavigationItem[] = [
   { name: 'Tradepedia', view: 'Tradepedia', icon: uiEmojis.book },
 ];
 
-export function TopBar({ currentView, setView }: TopBarProps) {
+export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
   useDisplayUpdate();
   const gameState = getGameState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,7 +45,7 @@ export function TopBar({ currentView, setView }: TopBarProps) {
 
   const handleLogout = () => {
     playerService.logout();
-    setView('Login');
+    onLogout();
   };
 
   const formattedDate = formatGameDate({
@@ -144,6 +142,8 @@ export function TopBar({ currentView, setView }: TopBarProps) {
                 {gameState.player ? formatNumber(gameState.player.money) : '0'}
               </span>
             </Badge>
+            
+            {gameState.player && <MessageLog />}
             
             <Button
               variant="ghost"
