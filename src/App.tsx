@@ -3,6 +3,7 @@ import { getGameState, updateGameState } from './lib/gamemechanics/gameState'
 import { TopBar } from './components/layout/TopBar' 
 import { LoginView } from './components/views/LoginView'
 import { CompanyView } from './components/views/CompanyView'
+import { FinanceView } from './components/views/FinanceView'
 import { PlaceholderView } from './components/views/PlaceholderView'
 import { ProfileView } from './components/views/ProfileView'
 import { SettingsView } from './components/views/SettingsView'
@@ -98,7 +99,7 @@ function App() {
         />
         <main className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 mx-auto w-full max-w-5xl">
           {view === 'Company' && <CompanyView />}
-          {view === 'Finance' && <PlaceholderView title="Financial Management" icon={uiEmojis.finance} description="Track income, expenses, and financial performance." />}
+          {view === 'Finance' && <FinanceView />}
           {view === 'Tradepedia' && <PlaceholderView title="Aviation Encyclopedia" icon={uiEmojis.book} description="Learn about aircraft, routes, and aviation industry." />}
           {view === 'Profile' && <ProfileView setView={setView} />}
           {view === 'Settings' && <SettingsView setView={setView} />}

@@ -1,4 +1,4 @@
-import { getGameState, resetGameState, updateGameState } from '../../lib/gamemechanics/gameState';
+import { getGameState, resetGameState } from '../../lib/gamemechanics/gameState';
 import { storageService, loadAdminSettings, saveAdminSettings } from '../../lib/localStorage/storageService';
 import { playerService } from '../../lib/player/playerService';
 import { Button, Card, CardContent, CardHeader, CardTitle, Switch, Label } from '../ui/ShadCN';
@@ -9,6 +9,7 @@ import { displayManager } from '../../lib/gamemechanics/displayManager';
 import type { View } from '../../App';
 import { ViewHeader } from '../ui/ViewHeader';
 import { notificationService } from '../../lib/notifications/notificationService';
+import { addMoney } from '../../lib/finance/financeService';
 
 interface AdminDashboardViewProps {
   setView: (view: View) => void;
@@ -75,9 +76,12 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
   const handleAddMoneyCheat = () => {
     const currentState = getGameState();
     if (currentState.player) {
-      const newMoney = currentState.player.money + 10000;
-      updateGameState({ player: { ...currentState.player, money: newMoney } });
-      notificationService.success(`Added €10,000 (Total: €${newMoney.toLocaleString()})`, { category: 'Admin' });
+      const success = addMoney(10000, 'Admin', 'Admin cheat: Add €10,000');
+      if (success) {
+        notificationService.success(`Added €10,000 (Total: €${(currentState.player.money + 10000).toLocaleString()})`, { category: 'Admin' });
+      } else {
+        notificationService.info('Failed to add money.', { category: 'Admin' });
+      }
       displayManager.updateDisplays(); // Ensure UI updates
     } else {
       notificationService.info('No active player/company to add money to.', { category: 'Admin' });
@@ -142,7 +146,7 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
                 variant="secondary" 
                 onClick={handleAddMoneyCheat}
               >
-                Add €10,000 {uiEmojis.money}
+                Add €10,000 {uiEmojis.euro}
               </Button>
             </div>
           </div>

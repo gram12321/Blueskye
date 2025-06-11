@@ -17,7 +17,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
   const companyName = gameState.player?.companyName;
   const [showToastNotification, setShowToastNotification] = useState(false);
   const [tutorialEnabled, setTutorialEnabled] = useState(true);
-  const [showDetailedInputSection, setShowDetailedInputSection] = useState(true);
   
   // Subscribe to display updates
   useDisplayUpdate();
@@ -27,7 +26,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
     if (companyName) {
       const settings = storageService.loadPlayerSettings(companyName);
       setShowToastNotification(settings.showToastNotification);
-      setShowDetailedInputSection(settings.showDetailedInputSection !== false);
       
       // Load tutorial state
       const tutorialState = storageService.loadTutorialState(companyName);
@@ -78,15 +76,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
     setTutorialEnabled(true);
   };
 
-  const handleDetailedInputSectionToggle = (checked: boolean) => {
-    setShowDetailedInputSection(checked);
-    const currentSettings = storageService.loadPlayerSettings(companyName);
-    storageService.savePlayerSettings(companyName, { 
-      ...currentSettings,
-      showDetailedInputSection: checked 
-    });
-  };
-
   return (
     <div className="h-screen flex flex-col">
       <ViewHeader 
@@ -118,25 +107,6 @@ export function SettingsView({ setView }: SettingsViewProps) {
                 />
                 <span className="text-sm font-medium">
                   {showToastNotification ? 'On' : 'Off'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-6">
-              <div className="space-y-0.5">
-                <Label htmlFor="show-detailed-input-section">Show Detailed Input Section</Label>
-                <p className="text-sm text-muted-foreground">
-                  Show detailed input/output summaries in management panels.
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="show-detailed-input-section"
-                  checked={showDetailedInputSection}
-                  onCheckedChange={handleDetailedInputSectionToggle}
-                />
-                <span className="text-sm font-medium">
-                  {showDetailedInputSection ? 'On' : 'Off'}
                 </span>
               </div>
             </div>

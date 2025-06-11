@@ -2,6 +2,7 @@
 
 ### Major Features & Changes
 - **Notification System**: Added a notification system for in-game messages to the player.
+- **Finance System**: Added a finance system to track the player's finances.
 - **Player Login**: Fixed the player login system to work correctly.
 - **Game Tick**: Created gameTick.ts to handle the game tick IE advancing the week.
 
