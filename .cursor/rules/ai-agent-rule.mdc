@@ -1,0 +1,123 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## AI Code Generation Principles for Air Management Game
+### 💡 ALWAYS, IN EVERY RESPONSE
+- Read @README.md.
+- Do not use `npm run build` or `npm run dev` unless specifically told to. The user already has a dev server running.
+- Verify the existence of files/functions before importing them.
+- Use named imports; avoid default exports.
+- Use ES "import" modules, not "require".
+- Place imports at the top of each file; no inline imports.
+
+### 💡 Project Summary
+- Iteration of a previous project located in `\oldIterations\Simulus`.
+- Turn-based, single-player simulation game.
+- Built with **React + TypeScript** as a **Single Page Application (SPA)**.
+- No Next.js or routing; views are handled via conditional rendering.
+- Use **LocalStorage** for login/auth; NO Firebase (Firestore + Auth) or other backends for storage.
+
+### ✅ Key AI Code & Architecture Rules
+1.  **React + TypeScript SPA**: No routing. Use a single `view` string for navigation.
+2.  **State & Logic**: All core game state and business logic must reside in `gameState.ts`. Components should not hold business logic.
+3.  **Styling**: Use **Tailwind CSS** and Shadcn UI exclusively. No Bootstrap or custom CSS.
+4.  **React Hooks**: Minimize usage (e.g., `useEffect`, `useReducer`). Centralize logic in `gameState.ts`. An exception is the display management system.
+5.  **Storage**: All LocalStorage operations must be in `src/lib/localstorage/*` services. No direct storage/persistence calls in other files.
+
+7.  **Display Management**: Use the system in `src/lib/displayManager.ts` for UI updates.
+
+---
+
+### 📦 Game Design Conventions
+- No direct player interaction, real-time mechanics, or shared world state.
+- Define data (players, resources, production, prices) with clear TypeScript types.
+- No multiplayer, no player interaction, no market, no trade logic at this stage.
+- No real-time mechanics, no shared world state.
+- No Firebase, only Local Storage for persistent data.- No constant sync.
+
+---
+
+## Blueskye Air Management Game – Architecture & Code Generation Guide
+
+### 🔧 Project Overview
+## About Blueskye
+Blueskye is a sophisticated web-based air management game that models complex air traffic, population demographics and fleet management.
+
+### 💻 Frontend Architecture
+- **Framework**: React + TypeScript
+- **SPA Only**: No routing or Next.js. Use a `view` variable to switch between screens.
+- **Styling**: Tailwind CSS, and Shadcn UI only (no Bootstrap, no custom CSS in this iteration).
+
+
+### 1. State Management State & Logic
+- Centralize all game data and logic in `gameState.ts`.
+- Avoid `useState` and `useEffect` unless absolutely necessary.
+- Access state via helper functions (`getGameState()`, `updatePlayerMoney()`, etc.).
+
+### 2. View Structure
+```typescript
+// No overlays - use grid layouts
+
+// Example view switching
+{view === "Market" && <Market />}
+{view === "Warehouse" && <Warehouse />}
+```
+
+---
+const MainView = () => (
+  <div className="grid grid-cols-12 gap-4">
+    <GameHeader className="col-span-12" />
+    <MainContent className="col-span-9" />
+    <InfoPanel className="col-span-3" />
+  </div>
+);
+```
+
+### Data Flow
+- Centralized state management
+- Persistent storage ONLY in localstorage
+
+### 🖥️ Display Management System
+
+The Display Management System (`src/lib/displayManager.ts`) ensures UI components stay in sync with game state changes. It uses React hooks, which is an exception to the general rule of avoiding them, for better lifecycle integration, a declarative approach, performance, and simpler component code.
+
+# Core Idea
+- A lightweight, subscription-based UI update mechanism.
+- Components subscribe to updates and re-render when game state changes.
+- Actions that modify game state can be wrapped to automatically trigger these updates.
+
+# Key Components & Usage
+- **`useDisplayUpdate()`**: React hook for components to subscribe to updates.
+  ```typescript
+  function MyComponent() {
+    useDisplayUpdate(); // Subscribe to updates
+    const gameState = getGameState();
+    // ... render using game state
+  }
+  ```
+- **`createActionHandler(actionFunction)`**: Wraps functions that change game state to automatically update subscribed components.
+  ```typescript
+  const myAction = displayManager.createActionHandler(() => {
+    // Update game state
+    updateGameState({ /* changes */ });
+    // Displays automatically update after this
+  });
+  ```
+# Best Practices
+- Use `useDisplayUpdate()` in components displaying game state.
+- Wrap state-changing functions with `createActionHandler`.
+- Keep components focused on rendering; avoid direct DOM manipulation.
+
+### AI Problem-Solving Guidelines
+**Data Persistence**:
+
+*   **LocalStorage ONLY**: All game state, player progress, settings, and other persistent data MUST be stored exclusively in the browser's LocalStorage.
+*   **No Server-Side Databases**: Do NOT introduce or utilize any server-side databases (like SQL, MongoDB, Firebase Firestore/Realtime Database, etc.) for core game data or state management.
+*   **Service Abstraction**: All LocalStorage interactions MUST go through the `storageService.ts` (`src/lib/localStorage/storageService.ts`). Direct calls to `localStorage.getItem/setItem/removeItem` elsewhere are forbidden.
+*   **Data Structure**: Data should be saved per-company where applicable.
+*   **EXCEPTION - Highscore System**: A specific exception has been made for the global highscore leaderboard feature.
+    *   **Firebase Firestore**: This feature utilizes Google Firebase Firestore (`src/lib/highscore/highscoreService.ts` and `src/lib/firebase/firebaseConfig.ts`) SOLELY for storing and retrieving highscore entries.
+    *   **STRICTLY Limited**: This is the **ONLY** permitted use of an external database. **DO NOT** use Firebase or any other database for any other purpose unless the USER explicitly requests and confirms it for a specific, separate feature. ` 
