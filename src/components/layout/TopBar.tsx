@@ -4,7 +4,7 @@ import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
 import { displayManager, useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
 import { Button, Badge, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN';
-import { MenuIcon, User, Settings, ShieldCheck, LogOut, Plane, Map } from 'lucide-react';
+import { MenuIcon, User, Settings, ShieldCheck, LogOut } from 'lucide-react';
 import { uiEmojis } from '@/components/ui/resources/emojiMap';
 import { useState } from 'react';
 import { playerService } from '../../lib/player/playerService';

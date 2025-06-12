@@ -1,25 +1,42 @@
 // Route type definitions for Blueskye Air Management Game
 
+// Permanent route definition
 export interface Route {
   id: string;
+  name: string;
   originCityId: string;
   destinationCityId: string;
+  distance: number; // km
+  flightTime: number; // hours (one way)
+  isActive: boolean;
+  assignedAircraftIds: string[]; // Aircraft assigned to this route
+  pricePerPassenger: number; // euros
+  
+  // Statistics
+  totalFlights: number;
+  totalRevenue: number;
+  totalProfit: number;
+  averageLoadFactor: number;
+}
+
+// Individual flight instance on a route
+export interface Flight {
+  id: string;
+  routeId: string;
   aircraftId: string;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  direction: 'outbound' | 'return'; // For round trips
   departureTime: Date;
   estimatedArrival: Date;
   actualArrival?: Date;
   
   // Flight details
-  distance: number; // km
-  flightTime: number; // hours
   passengers: number;
   maxPassengers: number;
   
   // Financial
-  pricePerPassenger: number; // euros
   totalRevenue: number;
-  fuelCost: number;
+  operationalCosts: number;
   profit: number;
   
   // Progress tracking
@@ -27,29 +44,19 @@ export interface Route {
   remainingTime: number; // hours
 }
 
-export interface RouteTemplate {
-  id: string;
-  name: string;
-  originCityId: string;
-  destinationCityId: string;
-  frequency: 'daily' | 'weekly'; // How often this route runs
-  isActive: boolean;
-  defaultPricing: number; // base price per passenger
+export interface RouteAssignment {
+  routeId: string;
+  aircraftId: string;
+  assignedDate: Date;
 }
 
 export interface RouteStats {
   totalRoutes: number;
   activeRoutes: number;
-  completedRoutes: number;
+  inactiveRoutes: number;
+  assignedAircraft: number;
+  totalFlights: number;
   totalRevenue: number;
   totalProfit: number;
   averageLoadFactor: number; // percentage of seats filled
-}
-
-export interface FlightPlan {
-  routeId: string;
-  aircraftId: string;
-  scheduledDeparture: Date;
-  passengerDemand: number;
-  estimatedProfit: number;
 } 

@@ -3,7 +3,7 @@
 
 import { storageService } from '../localStorage/storageService';
 import { Aircraft } from '../aircraft/aircraftTypes';
-import { Route } from '../routes/routeTypes';
+import { Route, Flight } from '../routes/routeTypes';
 import { City } from '../geography/cityTypes';
 
 export interface Player {
@@ -22,8 +22,9 @@ export interface GameState {
   
   // Aircraft and route management
   fleet: Aircraft[];
-  activeRoutes: Route[];
-  completedRoutes: Route[];
+  routes: Route[]; // Permanent routes
+  activeFlights: Flight[]; // Current flights
+  completedFlights: Flight[]; // Flight history
   cities: City[];
   totalIncome: number;
 }
@@ -36,8 +37,9 @@ let gameState: GameState = {
   month: 1,
   year: 2024,
   fleet: [],
-  activeRoutes: [],
-  completedRoutes: [],
+  routes: [],
+  activeFlights: [],
+  completedFlights: [],
   cities: [],
   totalIncome: 0
 };
@@ -77,8 +79,9 @@ export function resetGameState(): void {
     month: 1,
     year: 2024,
     fleet: [],
-    activeRoutes: [],
-    completedRoutes: [],
+    routes: [],
+    activeFlights: [],
+    completedFlights: [],
     cities: [],
     totalIncome: 0
   };
@@ -120,8 +123,9 @@ export function createNewPlayer(companyName: string): void {
     month: 1,
     year: 2024,
     fleet: [],
-    activeRoutes: [],
-    completedRoutes: [],
+    routes: [],
+    activeFlights: [],
+    completedFlights: [],
     cities: [],
     totalIncome: 0
   });

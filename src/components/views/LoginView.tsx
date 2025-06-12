@@ -52,7 +52,8 @@ export function LoginView({ setView, skipAutoLogin = false, onManualLogin }: Log
     setError('');
 
     try {
-      const result = await playerService.loginOrCreateCompany(companyName.trim());
+      // Allow companies without requiring a player (false = don't associate with player)
+      const result = await playerService.loginOrCreateCompany(companyName.trim(), false);
       
       if (result.success) {
         onManualLogin?.(); // Reset skipAutoLogin flag
@@ -115,17 +116,17 @@ export function LoginView({ setView, skipAutoLogin = false, onManualLogin }: Log
             <CardDescription>
               {currentPlayer 
                 ? `Welcome back, ${currentPlayer.name}!` 
-                : 'Create a player profile to get started'
+                : 'Create or manage your airline company'
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={currentPlayer ? "company" : "player"}>
+            <Tabs defaultValue="company">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="player" disabled={isLoading}>
                   Player Profile
                 </TabsTrigger>
-                <TabsTrigger value="company" disabled={isLoading || !currentPlayer}>
+                <TabsTrigger value="company" disabled={isLoading}>
                   Company
                 </TabsTrigger>
               </TabsList>

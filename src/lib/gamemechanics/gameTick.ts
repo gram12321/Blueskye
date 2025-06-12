@@ -1,5 +1,4 @@
 import { getGameState, updateGameState } from './gameState';
-import { processFlightRoutes } from '../routes/routeService';
 import { DAYS_PER_WEEK, WEEKS_PER_MONTH, MONTHS_PER_YEAR } from './utils';
 
 // Game time constants
@@ -52,8 +51,8 @@ export function advanceDay(): void {
     updateGameState({ player: { ...gameState.player } });
   }
 
-  // Process flight routes with game time progression
-  processFlightRoutes(HOURS_PER_DAY);
+  // TODO: Process new flight system with permanent routes
+  // processNewFlightSystem(HOURS_PER_DAY);
 }
 
 

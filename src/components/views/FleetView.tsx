@@ -2,6 +2,8 @@ import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { getFleet, getFleetStats, purchaseAircraft, sellAircraft, performMaintenance } from '../../lib/aircraft/fleetService';
 import { getAvailableAircraftTypes, getAircraftType } from '../../lib/aircraft/aircraftData';
 import { getGameState } from '../../lib/gamemechanics/gameState';
+import { getAllRoutes } from '../../lib/routes/routeService';
+import { getCity } from '../../lib/geography/cityData';
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Badge, Progress } from '../ui/ShadCN';
 
@@ -12,6 +14,7 @@ export function FleetView() {
   const fleet = getFleet();
   const fleetStats = getFleetStats();
   const availableAircraftTypes = getAvailableAircraftTypes();
+  const routes = getAllRoutes();
   
   const handlePurchaseAircraft = (aircraftTypeId: string) => {
     const success = purchaseAircraft(aircraftTypeId);
@@ -50,6 +53,10 @@ export function FleetView() {
       case 'maintenance': return 'bg-yellow-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const getAircraftRoute = (aircraftId: string) => {
+    return routes.find(route => route.assignedAircraftIds.includes(aircraftId));
   };
   
   return (
@@ -137,6 +144,26 @@ export function FleetView() {
                           <div className="font-medium">{aircraftType.maxPassengers}</div>
                         </div>
                       </div>
+
+                      {(() => {
+                        const assignedRoute = getAircraftRoute(aircraft.id);
+                        if (assignedRoute) {
+                          const originCity = getCity(assignedRoute.originCityId);
+                          const destinationCity = getCity(assignedRoute.destinationCityId);
+                          return (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                              <div className="text-xs text-blue-800 font-medium">Assigned Route:</div>
+                              <div className="text-sm text-blue-700">
+                                {assignedRoute.name}
+                              </div>
+                              <div className="text-xs text-blue-600">
+                                {originCity?.name} → {destinationCity?.name}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       <div className="border-t pt-3 mt-3"></div>
                       

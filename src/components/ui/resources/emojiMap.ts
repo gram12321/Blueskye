@@ -29,6 +29,7 @@ export const uiEmojis = {
   cargo: '📦',
   fuel: '⛽',
   route: '🗺️',
+  map: '🗺️',
   finance: '💼',
   fleet: '🚁',
   message: '💬',
