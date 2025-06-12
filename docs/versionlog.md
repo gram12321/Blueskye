@@ -1,3 +1,63 @@
+
+## [0.006]  - 2025-06-13 - Advanced Market & Analytics Update
+
+### Major Features & Changes
+- **Enhanced Passenger Demand System**: 
+  - Improved demand calculations considering both origin and destination city factors
+  - Distance-based demand curves with optimal ranges for different flight types
+  - Seasonal variation and business/leisure travel factors
+  - Domestic preference penalties for international routes when cities favor domestic travel
+- **Dynamic Pricing System**: 
+  - Demand-based pricing adjustments (premium for high demand, discounts for low demand)
+  - Market size factors and distance-based pricing tiers
+  - Minimum viable pricing thresholds to prevent unrealistic low prices
+- **Comprehensive Cost Model**: 
+  - Enhanced operational costs including fuel, airport fees, crew wages, maintenance, and handling costs
+  - Realistic cost structure that affects route profitability
+- **Route Analytics & Profitability Analysis**: 
+  - `src/lib/routes/routeAnalytics.ts`: Advanced analytics for route performance, market analysis, and profitability insights
+  - Performance metrics, market penetration analysis, and optimization recommendations
+  - Market opportunity identification and competition analysis
+- **Geography/Map View**:
+  - `src/components/views/GeographyView.tsx`: New view for city information, demand analysis, distance calculator, and market opportunities
+
+
+
+## [0.005]  - 2025-06-12 - Gamemechanics alpha
+
+### Major Features & Changes
+- **Core Game Mechanics Implemented**:
+  - **Aircraft System**:
+    - `src/lib/aircraft/aircraftTypes.ts`: Defines aircraft interfaces and properties (speed, range, maxPassengers, cost, fuel consumption).
+    - `src/lib/aircraft/fleetService.ts`: Manages player's fleet (purchase, sell, maintain, track condition/flight hours).
+    - `src/lib/aircraft/aircraftData.ts`: Contains available aircraft types (Boeing, Airbus).
+  - **Cities & Geography**:
+    - `src/lib/geography/cityTypes.ts`: Defines city interfaces (population, country, coordinates, demand multipliers).
+    - `src/lib/geography/cityData.ts`: Initializes and manages city data (London, Paris, Lyon).
+    - `src/lib/geography/distanceService.ts`: Calculates distances and travel times between cities.
+  - **Route Management**:
+    - `src/lib/routes/routeTypes.ts`: Defines route interfaces and status tracking.
+    - `src/lib/routes/routeService.ts`: Manages route creation, progress, income, demand, and completion.
+  - **Game State Integration**:
+    - `src/lib/gamemechanics/gameState.ts`: Extended to include fleet, cities, active/completed routes, and total income.
+    - `src/lib/gamemechanics/gameTick.ts`: Updated to process route progress and income generation each game tick.
+  - **User Interface Components**:
+    - `src/components/views/FleetView.tsx`: Displays owned aircraft, allows purchase/sale/maintenance, shows fleet stats.
+    - `src/components/views/RouteView.tsx`: Displays active routes with progress bars, allows route creation/cancellation, shows route stats.
+    - *(Planned but not yet implemented: Geography/Map View for city info, demand, and route planning)*
+- **Finance System Integration**: All major mechanics now use the centralized finance system for transaction tracking:
+  - Aircraft purchases, sales, and maintenance now record transactions with appropriate categories and descriptions.
+  - Route revenue and flight expenses (fuel costs) are now logged as financial transactions when flights complete.
+- **Realistic Flight Progression**: Flight progress is now based on actual flight hours:
+  - Each game day advances flight progress by a percentage based on the route's real flight time (distance/speed), rather than a fixed weekly increment.
+  - Aircraft flight hours and condition are updated accurately upon route completion.
+- **Improved Transaction Tracking**: All financial actions (buy/sell/maintain aircraft, route revenue/expenses) are visible in the Finance view's cash flow and transaction history.
+- **Bug Fixes & Refactoring**:
+  - Removed direct player money updates from mechanics; all money changes now go through the finance system.
+  - Improved error handling for missing aircraft types and invalid operations.
+  - Enhanced transaction descriptions for clarity in financial reports.
+
+
 ## [0.004]  - 2025-06-12 - Notification system and fixing playerlogin
 
 ### Major Features & Changes

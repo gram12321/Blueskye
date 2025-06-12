@@ -2,8 +2,9 @@
 
 import { Aircraft, FleetStats } from './aircraftTypes';
 import { getAircraftType } from './aircraftData';
-import { getGameState, updateGameState, updatePlayerMoney } from '../gamemechanics/gameState';
+import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
+import { addMoney } from '../finance/financeService';
 
 // Generate unique aircraft ID
 function generateAircraftId(): string {
@@ -34,10 +35,16 @@ export const purchaseAircraft = displayManager.createActionHandler((aircraftType
     condition: 100
   };
   
-  // Add to fleet and deduct money
+  // Add to fleet and record transaction
   const currentFleet = gameState.fleet || [];
   updateGameState({ fleet: [...currentFleet, newAircraft] });
-  updatePlayerMoney(-aircraftType.cost);
+  
+  // Record purchase transaction
+  addMoney(
+    -aircraftType.cost,
+    'Aircraft Purchase',
+    `Purchased ${aircraftType.name} (ID: ${newAircraft.id.slice(-8)})`
+  );
   
   return true;
 });
@@ -67,10 +74,16 @@ export const sellAircraft = displayManager.createActionHandler((aircraftId: stri
   // Calculate sell value based on condition (50-80% of original value)
   const sellValue = Math.floor(aircraftType.cost * (0.5 + (aircraft.condition / 100) * 0.3));
   
-  // Remove from fleet and add money
+  // Remove from fleet and record transaction
   const newFleet = currentFleet.filter(a => a.id !== aircraftId);
   updateGameState({ fleet: newFleet });
-  updatePlayerMoney(sellValue);
+  
+  // Record sale transaction
+  addMoney(
+    sellValue,
+    'Aircraft Sale',
+    `Sold ${aircraftType.name} (ID: ${aircraft.id.slice(-8)}) - Condition: ${aircraft.condition}%`
+  );
   
   return true;
 });
@@ -219,7 +232,7 @@ export const performMaintenance = displayManager.createActionHandler((aircraftId
   });
   
   updateGameState({ fleet: updatedFleet });
-  updatePlayerMoney(-maintenanceCost);
+  addMoney(-maintenanceCost, 'Aircraft Maintenance', `Performed maintenance on ${aircraftType.name} (ID: ${aircraft.id.slice(-8)})`);
   
   return true;
 }); 

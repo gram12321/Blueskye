@@ -28,6 +28,7 @@ const navigation: NavigationItem[] = [
   { name: 'Company', view: 'Company', icon: uiEmojis.company },
   { name: 'Fleet', view: 'Fleet', icon: uiEmojis.aircraft },
   { name: 'Routes', view: 'Routes', icon: uiEmojis.route },
+  { name: 'Geography', view: 'Geography', icon: uiEmojis.map },
   { name: 'Finance', view: 'Finance', icon: uiEmojis.finance },
   { name: 'Tradepedia', view: 'Tradepedia', icon: uiEmojis.book },
 ];
@@ -187,8 +188,6 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
                   { view: 'Profile', icon: User, label: 'Profile' },
                   { view: 'Settings', icon: Settings, label: 'Settings' },
                   { view: 'Admin', icon: ShieldCheck, label: 'Admin Dashboard' },
-                  { view: 'Fleet', icon: Plane, label: 'Fleet' },
-                  { view: 'Routes', icon: Map, label: 'Routes' },
                 ].map(({ view: viewName, icon: Icon, label }) => (
                   <DropdownMenuItem 
                     key={viewName} 

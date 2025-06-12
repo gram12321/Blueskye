@@ -1,19 +1,20 @@
 // Route management service for Blueskye Air Management Game
 
 import { Route, RouteStats } from './routeTypes';
-import { getGameState, updateGameState, updatePlayerMoney } from '../gamemechanics/gameState';
+import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
 import { getAircraft, updateAircraftStatus, addFlightHours } from '../aircraft/fleetService';
 import { getAircraftType } from '../aircraft/aircraftData';
 import { calculateCityDistance, calculateTravelTime, calculateFuelConsumption } from '../geography/distanceService';
 import { getCity } from '../geography/cityData';
+import { addMoney } from '../finance/financeService';
 
 // Generate unique route ID
 function generateRouteId(): string {
   return 'route-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
 }
 
-// Calculate passenger demand for a route
+// Calculate passenger demand for a route with enhanced logic
 function calculatePassengerDemand(originCityId: string, destinationCityId: string): number {
   const originCity = getCity(originCityId);
   const destinationCity = getCity(destinationCityId);
@@ -25,31 +26,103 @@ function calculatePassengerDemand(originCityId: string, destinationCityId: strin
   const distance = calculateCityDistance(originCityId, destinationCityId);
   const isDomestic = originCity.country === destinationCity.country;
   
-  // Base demand calculation
-  const populationFactor = Math.sqrt(originCity.population / 1000000); // Scale by population
-  const demandMultiplier = originCity.passengerDemandMultiplier;
-  const domesticBonus = isDomestic ? (1 + originCity.domesticPreference) : 1;
+  // Base demand from origin city population and demand multiplier
+  const originPopulationFactor = Math.sqrt(originCity.population / 1000000);
+  const destinationPopulationFactor = Math.sqrt(destinationCity.population / 1000000);
+  const averagePopulationFactor = (originPopulationFactor + destinationPopulationFactor) / 2;
   
-  // Distance affects demand (diminishing returns for very long routes)
-  const distanceMultiplier = Math.max(0.2, 1 - (distance / 15000));
+  // Apply demand multipliers from both cities
+  const averageDemandMultiplier = (originCity.passengerDemandMultiplier + destinationCity.passengerDemandMultiplier) / 2;
   
-  const baseDemand = populationFactor * demandMultiplier * domesticBonus * distanceMultiplier * 80;
+  // Domestic preference bonus (higher for domestic routes)
+  const domesticBonus = isDomestic ? 
+    (1 + (originCity.domesticPreference + destinationCity.domesticPreference) / 2) : 
+    (1 - (originCity.domesticPreference + destinationCity.domesticPreference) / 4); // Penalty for international when domestic preference is high
   
-  // Add some randomness (±20%)
-  const randomFactor = 0.8 + Math.random() * 0.4;
+  // Distance affects demand (sweet spot around 1000-3000km)
+  let distanceMultiplier;
+  if (distance < 500) {
+    distanceMultiplier = 0.6; // Too short, people prefer other transport
+  } else if (distance < 1500) {
+    distanceMultiplier = 1.0; // Ideal short-haul distance
+  } else if (distance < 3000) {
+    distanceMultiplier = 0.9; // Good medium-haul distance
+  } else if (distance < 8000) {
+    distanceMultiplier = 0.7; // Long-haul, lower frequency
+  } else {
+    distanceMultiplier = 0.4; // Very long routes, niche market
+  }
   
-  return Math.max(10, Math.round(baseDemand * randomFactor));
+  // Base demand calculation with enhanced factors
+  const baseDemand = averagePopulationFactor * averageDemandMultiplier * domesticBonus * distanceMultiplier * 90;
+  
+  // Add seasonal and random variation (±25%)
+  const seasonalFactor = 0.85 + Math.random() * 0.3;
+  
+  // Business vs leisure travel split affects demand stability
+  const businessTravelFactor = isDomestic ? 1.1 : 1.3; // International routes have more business travel
+  
+  const finalDemand = baseDemand * seasonalFactor * businessTravelFactor;
+  
+  return Math.max(15, Math.round(finalDemand));
 }
 
-// Calculate optimal pricing based on distance and demand
-function calculateOptimalPricing(distance: number, isDomestic: boolean): number {
-  const basePrice = isDomestic ? 0.12 : 0.15; // euros per km
-  const distancePrice = distance * basePrice;
+// Calculate dynamic pricing based on distance, demand, and market factors
+function calculateOptimalPricing(
+  distance: number, 
+  isDomestic: boolean, 
+  passengerDemand: number, 
+  aircraftCapacity: number,
+  originCity: any,
+  destinationCity: any
+): number {
+  // Base pricing per kilometer
+  const basePrice = isDomestic ? 0.10 : 0.13; // euros per km
+  let distancePrice = distance * basePrice;
   
-  // Add base fee
-  const baseFee = isDomestic ? 50 : 80;
+  // Distance-based pricing adjustments
+  if (distance < 500) {
+    distancePrice *= 1.3; // Higher per-km rate for short flights
+  } else if (distance > 5000) {
+    distancePrice *= 0.85; // Discount for long-haul
+  }
   
-  return Math.round(distancePrice + baseFee);
+  // Base fees
+  const baseFee = isDomestic ? 45 : 75;
+  
+  // Demand-based pricing adjustment
+  const loadFactor = Math.min(passengerDemand / aircraftCapacity, 1.0);
+  let demandMultiplier = 1.0;
+  
+  if (loadFactor > 0.9) {
+    demandMultiplier = 1.4; // High demand premium
+  } else if (loadFactor > 0.7) {
+    demandMultiplier = 1.2; // Good demand
+  } else if (loadFactor > 0.5) {
+    demandMultiplier = 1.0; // Normal pricing
+  } else if (loadFactor > 0.3) {
+    demandMultiplier = 0.85; // Discount for low demand
+  } else {
+    demandMultiplier = 0.7; // Significant discount for very low demand
+  }
+  
+  // Market factors
+  const avgPopulation = (originCity.population + destinationCity.population) / 2;
+  const marketSizeFactor = avgPopulation > 5000000 ? 1.15 : 
+                          avgPopulation > 2000000 ? 1.05 : 
+                          avgPopulation > 500000 ? 1.0 : 0.9;
+  
+  // Competition factor (simplified - fewer routes = higher prices)
+  const competitionFactor = 1.0; // TODO: Implement based on existing routes
+  
+  // Calculate final price
+  const baseTotal = distancePrice + baseFee;
+  const finalPrice = baseTotal * demandMultiplier * marketSizeFactor * competitionFactor;
+  
+  // Ensure minimum viable pricing
+  const minimumPrice = isDomestic ? 60 : 90;
+  
+  return Math.max(minimumPrice, Math.round(finalPrice));
 }
 
 // Create a new route
@@ -85,11 +158,28 @@ export const createRoute = displayManager.createActionHandler((
   const passengers = Math.min(passengerDemand, aircraftType.maxPassengers);
   
   // Use provided pricing or calculate optimal pricing
-  const pricing = pricePerPassenger || calculateOptimalPricing(distance, originCity.country === destinationCity.country);
+  const pricing = pricePerPassenger || calculateOptimalPricing(
+    distance, 
+    originCity.country === destinationCity.country,
+    passengerDemand,
+    aircraftType.maxPassengers,
+    originCity,
+    destinationCity
+  );
   
+  // Calculate comprehensive operational costs
   const fuelCost = calculateFuelConsumption(originCityId, destinationCityId, aircraftType.fuelConsumption) * 1.2; // 1.2 euros per liter
+  
+  // Additional operational costs
+  const isDomestic = originCity.country === destinationCity.country;
+  const airportFees = isDomestic ? 800 : 1200; // Landing and takeoff fees
+  const crewCosts = flightTime * 150; // Crew wages per hour
+  const maintenanceCost = (flightTime / 100) * aircraftType.maintenanceCost; // Prorated maintenance
+  const handlingCosts = passengers * 8; // Ground handling per passenger
+  
+  const totalOperationalCosts = fuelCost + airportFees + crewCosts + maintenanceCost + handlingCosts;
   const totalRevenue = passengers * pricing;
-  const profit = totalRevenue - fuelCost;
+  const profit = totalRevenue - totalOperationalCosts;
   
   const now = new Date();
   const estimatedArrival = new Date(now.getTime() + (flightTime * 60 * 60 * 1000));
@@ -108,7 +198,7 @@ export const createRoute = displayManager.createActionHandler((
     maxPassengers: aircraftType.maxPassengers,
     pricePerPassenger: pricing,
     totalRevenue,
-    fuelCost,
+    fuelCost: totalOperationalCosts, // Store total operational costs in fuelCost field for now
     profit,
     currentProgress: 0,
     remainingTime: flightTime
@@ -196,13 +286,25 @@ export const completeRoute = displayManager.createActionHandler((routeId: string
   
   const route = currentRoutes[routeIndex];
   const aircraft = getAircraft(route.aircraftId);
+  const aircraftType = aircraft ? getAircraftType(aircraft.aircraftTypeId) : null;
   
-  if (!aircraft) {
+  if (!aircraft || !aircraftType) {
     return false;
   }
   
-  // Add income to player
-  updatePlayerMoney(route.totalRevenue);
+  // Record revenue transaction
+  addMoney(
+    route.totalRevenue,
+    'Flight Revenue',
+    `Flight completed: ${getCity(route.originCityId)?.name} to ${getCity(route.destinationCityId)?.name}`
+  );
+  
+  // Record operational cost transaction
+  addMoney(
+    -route.fuelCost, // This now contains total operational costs
+    'Flight Expenses',
+    `Operational costs for flight: ${getCity(route.originCityId)?.name} to ${getCity(route.destinationCityId)?.name}`
+  );
   
   // Update total income tracking
   const newTotalIncome = (gameState.totalIncome || 0) + route.totalRevenue;
@@ -229,8 +331,9 @@ export const completeRoute = displayManager.createActionHandler((routeId: string
     completedRoutes: updatedCompletedRoutes
   });
   
-  // Free up aircraft
+  // Free up aircraft and add flight hours
   updateAircraftStatus(route.aircraftId, 'available');
+  addFlightHours(route.aircraftId, route.flightTime);
   
   return true;
 });
@@ -289,7 +392,7 @@ export function getRouteStats(): RouteStats {
 }
 
 // Process all active flight routes, updating progress and completing flights
-export const processFlightRoutes = displayManager.createActionHandler((): void => {
+export const processFlightRoutes = displayManager.createActionHandler((hoursPerDay: number = 24): void => {
   const activeRoutes = getActiveRoutes();
   
   activeRoutes.forEach(route => {
@@ -297,36 +400,21 @@ export const processFlightRoutes = displayManager.createActionHandler((): void =
       // Start scheduled routes
       startRoute(route.id);
     } else if (route.status === 'in-progress') {
-      // Calculate progress based on actual flight time
-      // Each week represents 1/4 of the flight time (flights complete in ~4 weeks)
-      const progressPerWeek = (1 / 4) * 100; // 25% per week base
-      
-      // Get aircraft to calculate actual progress based on speed
       const aircraft = getAircraft(route.aircraftId);
       const aircraftType = aircraft ? getAircraftType(aircraft.aircraftTypeId) : null;
       
-      if (aircraftType) {
-        // Use actual travel time for more realistic progress
-        const actualProgressPerWeek = (168 / route.flightTime) * 100; // 168 hours in a week
-        const adjustedProgress = Math.min(progressPerWeek, actualProgressPerWeek);
-        
-        updateRouteProgress(route.id, adjustedProgress);
-        
-        // Check if route is complete
-        if (route.currentProgress + adjustedProgress >= 100) {
-          completeRoute(route.id);
-          
-          // Add flight hours to aircraft
-          addFlightHours(route.aircraftId, route.flightTime);
-        }
-      } else {
-        // Fallback to basic progress if aircraft type not found
-        updateRouteProgress(route.id, progressPerWeek);
-        
-        if (route.currentProgress + progressPerWeek >= 100) {
-          completeRoute(route.id);
-          addFlightHours(route.aircraftId, route.flightTime);
-        }
+      if (!aircraftType) return;
+      
+      // Calculate progress based on actual flight time
+      const progressPerDay = (hoursPerDay / route.flightTime) * 100;
+      
+      // Update route progress
+      updateRouteProgress(route.id, progressPerDay);
+      
+      // Check if route is complete
+      const updatedRoute = getRoute(route.id);
+      if (updatedRoute && updatedRoute.currentProgress >= 100) {
+        completeRoute(route.id);
       }
     }
   });

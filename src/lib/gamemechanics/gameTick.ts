@@ -2,10 +2,13 @@ import { getGameState, updateGameState } from './gameState';
 import { processFlightRoutes } from '../routes/routeService';
 import { DAYS_PER_WEEK, WEEKS_PER_MONTH, MONTHS_PER_YEAR } from './utils';
 
+// Game time constants
+export const HOURS_PER_DAY = 24;
+
 /**
  * Advance the game by one day.
  * Handles day, week, month, year progression.
- * (Extend this function with more simulation logic as needed)
+
  */
 export function advanceDay(): void {
   const gameState = getGameState();
@@ -49,22 +52,13 @@ export function advanceDay(): void {
     updateGameState({ player: { ...gameState.player } });
   }
 
-  // Process flight routes
-  processFlightRoutes();
+  // Process flight routes with game time progression
+  processFlightRoutes(HOURS_PER_DAY);
 }
 
-/**
- * Legacy function name for compatibility
- * @deprecated Use advanceDay() instead
- */
-export function advanceWeek(): void {
-  // Advance by 7 days (1 week)
-  for (let i = 0; i < DAYS_PER_WEEK; i++) {
-    advanceDay();
-  }
-}
+
 
 export const gameTick = {
-  advanceDay,
-  advanceWeek
+  advanceDay
+  
 }; 
