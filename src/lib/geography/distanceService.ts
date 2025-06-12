@@ -2,6 +2,7 @@
 
 import { Coordinates } from './cityTypes';
 import { getCity } from './cityData';
+import { getAirport } from './airportData';
 
 // Calculate distance between two coordinates using Haversine formula
 export function calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
@@ -39,6 +40,32 @@ export function calculateCityDistance(cityId1: string, cityId2: string): number 
 // Calculate travel time between cities based on aircraft speed
 export function calculateTravelTime(cityId1: string, cityId2: string, aircraftSpeed: number): number {
   const distance = calculateCityDistance(cityId1, cityId2);
+  
+  if (distance === 0 || aircraftSpeed === 0) {
+    return 0;
+  }
+  
+  // Add 30 minutes for takeoff/landing procedures
+  const flightTime = (distance / aircraftSpeed) + 0.5;
+  
+  return Math.round(flightTime * 10) / 10; // Round to 1 decimal place
+}
+
+// Calculate distance between two airports
+export function calculateAirportDistance(airportId1: string, airportId2: string): number {
+  const airport1 = getAirport(airportId1);
+  const airport2 = getAirport(airportId2);
+  
+  if (!airport1 || !airport2) {
+    return 0;
+  }
+  
+  return calculateDistance(airport1.coordinates, airport2.coordinates);
+}
+
+// Calculate travel time between airports based on aircraft speed
+export function calculateAirportTravelTime(airportId1: string, airportId2: string, aircraftSpeed: number): number {
+  const distance = calculateAirportDistance(airportId1, airportId2);
   
   if (distance === 0 || aircraftSpeed === 0) {
     return 0;

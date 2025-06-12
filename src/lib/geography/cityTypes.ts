@@ -11,8 +11,24 @@ export interface City {
   country: string;
   population: number;
   coordinates: Coordinates;
-  passengerDemandMultiplier: number; // 0.5-2.0, affects passenger generation
-  domesticPreference: number; // 0-1, preference for domestic routes
+}
+
+// Airport interface for the new airport-based route system
+export interface Airport {
+  id: string;
+  name: string;
+  code: string; // IATA/ICAO code
+  cityId: string; // Associated city
+  coordinates: Coordinates;
+}
+
+// Individual passenger with destination preference
+export interface Passenger {
+  id: string;
+  originCityId: string;
+  destinationCityId: string;
+  originAirportId: string; // Which airport they'll use for departure
+  createdWeek: number; // Game week when passenger was generated
 }
 
 // CityPair and PassengerDemand interfaces moved to routeService.ts for better organization 

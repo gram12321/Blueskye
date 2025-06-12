@@ -4,8 +4,10 @@ import { getAvailableAircraftTypes, getAircraftType } from '../../lib/aircraft/a
 import { getGameState } from '../../lib/gamemechanics/gameState';
 import { getAllRoutes } from '../../lib/routes/routeService';
 import { getCity } from '../../lib/geography/cityData';
+import { getAirport } from '../../lib/geography/airportData';
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Badge, Progress } from '../ui/ShadCN';
+import { notificationService } from '../../lib/notifications/notificationService';
 
 export function FleetView() {
   useDisplayUpdate();
@@ -25,8 +27,11 @@ export function FleetView() {
   };
   
   const handleSellAircraft = (aircraftId: string) => {
-    if (confirm('Are you sure you want to sell this aircraft?')) {
-      sellAircraft(aircraftId);
+    const success = sellAircraft(aircraftId);
+    if (success) {
+      notificationService.success('Aircraft sold successfully.', { category: 'Fleet' });
+    } else {
+      notificationService.info('Unable to sell aircraft. It may be in flight or an error occurred.', { category: 'Fleet' });
     }
   };
   
@@ -148,8 +153,10 @@ export function FleetView() {
                       {(() => {
                         const assignedRoute = getAircraftRoute(aircraft.id);
                         if (assignedRoute) {
-                          const originCity = getCity(assignedRoute.originCityId);
-                          const destinationCity = getCity(assignedRoute.destinationCityId);
+                          const originAirport = getAirport(assignedRoute.originAirportId);
+                          const destinationAirport = getAirport(assignedRoute.destinationAirportId);
+                          const originCity = originAirport ? getCity(originAirport.cityId) : null;
+                          const destinationCity = destinationAirport ? getCity(destinationAirport.cityId) : null;
                           return (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
                               <div className="text-xs text-blue-800 font-medium">Assigned Route:</div>
@@ -157,7 +164,7 @@ export function FleetView() {
                                 {assignedRoute.name}
                               </div>
                               <div className="text-xs text-blue-600">
-                                {originCity?.name} → {destinationCity?.name}
+                                {originAirport?.code} ({originCity?.name}) → {destinationAirport?.code} ({destinationCity?.name})
                               </div>
                             </div>
                           );

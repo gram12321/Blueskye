@@ -9,6 +9,7 @@ import {
 import { getAvailableAircraft, getFleet } from '../../lib/aircraft/fleetService';
 import { getAircraftType } from '../../lib/aircraft/aircraftData';
 import { getCity } from '../../lib/geography/cityData';
+import { getAirport } from '../../lib/geography/airportData';
 
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/ShadCN/Card';
@@ -110,8 +111,10 @@ export function RouteView() {
           ) : (
             <div className="space-y-4">
               {routes.map((route) => {
-                const originCity = getCity(route.originCityId);
-                const destinationCity = getCity(route.destinationCityId);
+                const originAirport = getAirport(route.originAirportId);
+                const destinationAirport = getAirport(route.destinationAirportId);
+                const originCity = originAirport ? getCity(originAirport.cityId) : null;
+                const destinationCity = destinationAirport ? getCity(destinationAirport.cityId) : null;
                 const assignedAircraft = route.assignedAircraftIds.map(id => 
                   fleet.find(aircraft => aircraft.id === id)
                 ).filter(Boolean);
@@ -123,7 +126,7 @@ export function RouteView() {
                         <div>
                           <CardTitle className="text-lg">{route.name}</CardTitle>
                           <CardDescription>
-                            {originCity?.name} → {destinationCity?.name} • {formatNumber(route.distance)} km
+                            {originAirport?.code} ({originCity?.name}) → {destinationAirport?.code} ({destinationCity?.name}) • {formatNumber(route.distance)} km
                           </CardDescription>
                         </div>
                         <div className="flex gap-2">

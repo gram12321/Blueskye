@@ -89,7 +89,12 @@ function prepareGameStateForStorage(gameState: any): any {
   if (prepared.player && prepared.player.lastPlayed instanceof Date) {
     prepared.player.lastPlayed = prepared.player.lastPlayed.toISOString();
   }
-  
+
+  // Cap waitingPassengers to last 5000 to avoid quota issues
+  if (Array.isArray(prepared.waitingPassengers) && prepared.waitingPassengers.length > 5000) {
+    prepared.waitingPassengers = prepared.waitingPassengers.slice(-5000);
+  }
+
   return prepared;
 }
 

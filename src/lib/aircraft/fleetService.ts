@@ -235,4 +235,11 @@ export const performMaintenance = displayManager.createActionHandler((aircraftId
   addMoney(-maintenanceCost, 'Aircraft Maintenance', `Performed maintenance on ${aircraftType.name} (ID: ${aircraft.id.slice(-8)})`);
   
   return true;
-}); 
+});
+
+// Get owned aircraft types (unique types from fleet)
+export function getOwnedAircraftTypes(): string[] {
+  const fleet = getFleet();
+  const uniqueTypes = new Set(fleet.map(aircraft => aircraft.aircraftTypeId));
+  return Array.from(uniqueTypes);
+} 

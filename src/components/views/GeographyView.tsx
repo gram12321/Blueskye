@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { getAllCities, getCity } from '../../lib/geography/cityData';
-import { calculateCityDistance, calculateTravelTime } from '../../lib/geography/distanceService';
-import { getAvailableAircraftTypes } from '../../lib/aircraft/aircraftData';
+import { getAllAirports, getAirport } from '../../lib/geography/airportData';
+import { calculateAirportDistance, calculateAirportTravelTime } from '../../lib/geography/distanceService';
+import { getOwnedAircraftTypes } from '../../lib/aircraft/fleetService';
+import { getAircraftType } from '../../lib/aircraft/aircraftData';
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/ShadCN/Card';
 
@@ -15,33 +17,38 @@ export function GeographyView() {
   useDisplayUpdate();
   
   const cities = getAllCities();
-  const aircraftTypes = getAvailableAircraftTypes();
+  const airports = getAllAirports();
+  const ownedAircraftTypes = getOwnedAircraftTypes();
   
-  // Distance calculator state
-  const [originCity, setOriginCity] = useState<string>('');
-  const [destinationCity, setDestinationCity] = useState<string>('');
+  // Airport-based distance calculator state
+  const [originAirport, setOriginAirport] = useState<string>('');
+  const [destinationAirport, setDestinationAirport] = useState<string>('');
 
-  
   const getRouteInfo = () => {
-    if (!originCity || !destinationCity) return null;
-    
-    const origin = getCity(originCity);
-    const destination = getCity(destinationCity);
+    if (!originAirport || !destinationAirport) return null;
+    const origin = getAirport(originAirport);
+    const destination = getAirport(destinationAirport);
     if (!origin || !destination) return null;
+    const originCity = getCity(origin.cityId);
+    const destinationCity = getCity(destination.cityId);
+    if (!originCity || !destinationCity) return null;
+    const distance = calculateAirportDistance(originAirport, destinationAirport);
+    const isDomestic = originCity.country === destinationCity.country;
     
-    const distance = calculateCityDistance(originCity, destinationCity);
-    const isDomestic = origin.country === destination.country;
+    // Only show owned aircraft types
+    const ownedTypes = ownedAircraftTypes.map(typeId => getAircraftType(typeId)).filter(Boolean);
     
     const routeInfo = {
       distance,
       isDomestic,
-      travelTimes: aircraftTypes.map(aircraft => ({
-        aircraft: aircraft.name,
-        time: calculateTravelTime(originCity, destinationCity, aircraft.speed),
-        inRange: distance <= aircraft.range
-      }))
+      travelTimes: ownedTypes.map(aircraft => ({
+        aircraft: aircraft!.name,
+        time: calculateAirportTravelTime(originAirport, destinationAirport, aircraft!.speed),
+        inRange: distance <= aircraft!.range
+      })),
+      originAirportId: originAirport,
+      destinationCityId: destinationCity.id
     };
-    
     return routeInfo;
   };
   
@@ -54,47 +61,51 @@ export function GeographyView() {
         description="Explore cities, analyze passenger demand, and plan routes"
       />
       
-      {/* Distance Calculator */}
+      {/* Airport-based Distance Calculator */}
       <Card>
         <CardHeader>
           <CardTitle>Route Distance Calculator</CardTitle>
-          <CardDescription>Calculate distances and flight times between cities</CardDescription>
+          <CardDescription>Calculate distances and flight times between airports</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Origin City</label>
-              <Select value={originCity} onValueChange={setOriginCity}>
+              <label className="text-sm font-medium mb-2 block">Origin Airport</label>
+              <Select value={originAirport} onValueChange={setOriginAirport}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select origin" />
+                  <SelectValue placeholder="Select origin airport" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.id}>
-                      {city.name}, {city.country}
-                    </SelectItem>
-                  ))}
+                  {airports.map((airport) => {
+                    const city = getCity(airport.cityId);
+                    return (
+                      <SelectItem key={airport.id} value={airport.id}>
+                        {airport.code} - {airport.name} ({city?.name})
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
-            
             <div>
-              <label className="text-sm font-medium mb-2 block">Destination City</label>
-              <Select value={destinationCity} onValueChange={setDestinationCity}>
+              <label className="text-sm font-medium mb-2 block">Destination Airport</label>
+              <Select value={destinationAirport} onValueChange={setDestinationAirport}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select destination" />
+                  <SelectValue placeholder="Select destination airport" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities.filter(city => city.id !== originCity).map((city) => (
-                    <SelectItem key={city.id} value={city.id}>
-                      {city.name}, {city.country}
-                    </SelectItem>
-                  ))}
+                  {airports.filter(a => a.id !== originAirport).map((airport) => {
+                    const city = getCity(airport.cityId);
+                    return (
+                      <SelectItem key={airport.id} value={airport.id}>
+                        {airport.code} - {airport.name} ({city?.name})
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
           {routeInfo && (
             <RouteInfoCard routeInfo={routeInfo} />
           )}
@@ -128,10 +139,10 @@ export function GeographyView() {
               <h4 className="font-medium mb-3">Demand by City</h4>
               <div className="space-y-2">
                 {cities
-                  .sort((a, b) => (b.population * b.passengerDemandMultiplier) - (a.population * a.passengerDemandMultiplier))
+                  .sort((a, b) => b.population - a.population)
                   .map((city) => {
-                    const demand = city.population * city.passengerDemandMultiplier;
-                    const maxDemand = Math.max(...cities.map(c => c.population * c.passengerDemandMultiplier));
+                    const demand = city.population;
+                    const maxDemand = Math.max(...cities.map(c => c.population));
                     const percentage = (demand / maxDemand) * 100;
                     
                     return (
@@ -156,15 +167,15 @@ export function GeographyView() {
               <h4 className="font-medium mb-3">Route Opportunities</h4>
               <div className="space-y-3">
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="font-medium text-green-800">High Demand Routes</div>
+                  <div className="font-medium text-green-800">High Population Routes</div>
                   <div className="text-sm text-green-700 mt-1">
-                    Focus on routes between major cities with high demand multipliers
+                    Focus on routes between major cities with large populations
                   </div>
                 </div>
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="font-medium text-blue-800">Domestic Preference</div>
+                  <div className="font-medium text-blue-800">Domestic Routes</div>
                   <div className="text-sm text-blue-700 mt-1">
-                    Cities with high domestic preference offer stable passenger volumes
+                    Domestic routes typically have stable passenger volumes
                   </div>
                 </div>
                 <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">

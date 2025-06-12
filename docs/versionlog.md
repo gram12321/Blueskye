@@ -1,5 +1,67 @@
+## [0.009]  - 2025-06-12 - Enhanced Passenger Demand Visualization & Map Integration
 
-## [0.006]  - 2025-06-13 - Advanced Market & Analytics Update
+### Major Features & Changes
+- **Interactive Data Visualization**:
+  - **NEW**: Interactive pie charts for passenger distribution analysis
+  - **IMPROVED**: Bar chart scaling and responsiveness for better data readability
+  - **ENHANCED**: Chart tooltips with detailed passenger statistics and market insights
+- **Map Integration**:
+  - **NEW**: OpenStreetMap integration for geographical visualization
+  - **NEW**: Airport and route visualization on the map interface
+  - **NEW**: Interactive map markers with passenger demand information
+
+
+## [0.008]  - 2025-06-12 - Simplified airport and passenger interfaces & data cleanup
+
+### Major Features & Changes
+- **Interface Simplification**:
+  - **REMOVED**: Airport properties: `capacity`, `hub`, `international` - simplified airport model for cleaner implementation.
+  - **REMOVED**: Passenger property: `priority` - simplified passenger model.
+  - **REMOVED**: City properties: `passengerDemandMultiplier`, `domesticPreference` - simplified city data.
+- **Data Organization**:
+  - **NEW**: `airportData.ts` - moved all airport data from `cityData.ts` to separate dedicated file.
+  - **UPDATED**: Domestic preferences now handled as constants in `passengerDemandService.ts`.
+  - **UPDATED**: All import statements throughout codebase to use new `airportData.ts`.
+- **Component Updates**:
+  - **UPDATED**: `AirportCard` component simplified to show only essential information (coordinates, waiting passengers).
+  - **UPDATED**: `CityCard` component simplified to show only population and coordinates.
+  - **UPDATED**: `GeographyView` and `PassengerDemandView` updated to work with simplified data model.
+- **Service Updates**:
+  - **UPDATED**: `passengerDemandService.ts` to use constant domestic preferences instead of city properties.
+  - **UPDATED**: All route and distance services to import from new `airportData.ts`.
+  - **CLEANED**: Removed all references to removed properties throughout the codebase.
+
+## [0.007]  - 2025-06-12 - Airport-based passenger demand system & major overhaul
+
+### Major Features & Changes
+- **Complete Airport-Based System Redesign**:
+  - **NEW**: Routes now connect airports instead of cities, providing more realistic flight operations.
+  - **NEW**: Airport data with major airports for London (LHR, LGW, LTN), Paris (CDG, ORY), and Lyon (LYS).
+  - Each airport has capacity, hub status, international capability, and specific coordinates.
+- **Revolutionary Passenger Demand System**:
+  - **NEW**: Realistic passenger generation each game week based on city population and demand multipliers.
+  - **NEW**: Intelligent destination selection using exponential distance decay, domestic preferences, and city attractiveness.
+  - **NEW**: Airport distribution system where passengers choose airports based on distance from origin city (Heathrow gets more London passengers than Gatwick, but even Liverpool gets some).
+  - **NEW**: Passenger priority system (business vs leisure travelers) affecting pricing potential.
+- **New UI Components & Views**:
+  - **NEW**: `AirportCard` component displaying airport capacity, utilization, and waiting passengers.
+  - **NEW**: `PassengerDemandView` - comprehensive view showing passenger statistics, airport utilization, and market insights.
+  - Updated `RouteCreator` to work with airports instead of cities, showing airport codes and city information.
+- **Enhanced Route System**:
+  - Routes now use airport IDs (`originAirportId`, `destinationAirportId`) instead of city IDs.
+  - Updated route service with new airport distance calculations and passenger demand integration.
+  - Route displays now show airport codes and city names (e.g., "LHR (London) → CDG (Paris)").
+- **Game State Integration**:
+  - Added `waitingPassengers` array to game state to track generated passengers.
+  - Passenger generation integrated into game tick system (generates new passengers each week).
+  - Updated all existing views (Fleet, Routes, Geography) to work with the new airport system.
+- **Technical Infrastructure**:
+  - New `passengerDemandService.ts` with sophisticated passenger generation algorithms.
+  - Enhanced distance service with airport-to-airport calculations.
+  - Updated route types and services for airport compatibility.
+  - Navigation updated with new "Passengers" view for demand monitoring.
+
+## [0.006]  - 2025-06-12 - Advanced Market & Analytics Update
 
 ### Major Features & Changes
 - **Enhanced Passenger Demand System**: 

@@ -1,11 +1,11 @@
 // Route type definitions for Blueskye Air Management Game
 
-// Permanent route definition
+// Permanent route definition - now uses airports instead of cities
 export interface Route {
   id: string;
   name: string;
-  originCityId: string;
-  destinationCityId: string;
+  originAirportId: string;
+  destinationAirportId: string;
   distance: number; // km
   flightTime: number; // hours (one way)
   isActive: boolean;

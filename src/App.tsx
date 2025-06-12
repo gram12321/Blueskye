@@ -11,11 +11,12 @@ import { AdminDashboardView } from './components/views/AdminDashboardView'
 import { FleetView } from './components/views/FleetView'
 import { RouteView } from './components/views/RouteView'
 import { GeographyView } from './components/views/GeographyView'
+import { PassengerDemandView } from './components/views/PassengerDemandView'
 import { uiEmojis } from './components/ui/resources/emojiMap'
 import { useDisplayUpdate } from './lib/gamemechanics/displayManager'
 import { Toaster } from './components/ui/ShadCN/Toaster'
 
-export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin' | 'Fleet' | 'Routes' | 'Geography'
+export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin' | 'Fleet' | 'Routes' | 'Geography' | 'Passengers'
 
 function App() {
   const [view, setView] = useState<View>('Login')
@@ -108,6 +109,7 @@ function App() {
           {view === 'Fleet' && <FleetView />}
           {view === 'Routes' && <RouteView />}
           {view === 'Geography' && <GeographyView />}
+          {view === 'Passengers' && <PassengerDemandView />}
         </main>
       </div>
     )

@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { createRoute } from '../../lib/routes/routeService';
-import { getAvailableAircraft } from '../../lib/aircraft/fleetService';
-import { getAircraftType, getAvailableAircraftTypes } from '../../lib/aircraft/aircraftData';
-import { getAllCities, getCity } from '../../lib/geography/cityData';
-import { calculateCityDistance, calculateTravelTime } from '../../lib/geography/distanceService';
+import { getAvailableAircraft, getOwnedAircraftTypes } from '../../lib/aircraft/fleetService';
+import { getAircraftType } from '../../lib/aircraft/aircraftData';
+import { getCity } from '../../lib/geography/cityData';
+import { getAllAirports, getAirport } from '../../lib/geography/airportData';
+import { calculateAirportDistance, calculateAirportTravelTime } from '../../lib/geography/distanceService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ShadCN/Card';
 import { Button } from './ShadCN/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ShadCN/Select';
-import { CityCard } from './Cards/CityCard';
+import { AirportCard } from './Cards/AirportCard';
 import { RouteInfoCard } from './Cards/RouteInfoCard';
 import { formatNumber } from '../../lib/gamemechanics/utils';
 
 export function RouteCreator() {
   useDisplayUpdate();
   
-  const cities = getAllCities();
+  const airports = getAllAirports();
   const availableAircraft = getAvailableAircraft();
+  const ownedAircraftTypes = getOwnedAircraftTypes();
   
   // Form state for creating new routes
   const [selectedOrigin, setSelectedOrigin] = useState<string>('');
@@ -25,18 +27,23 @@ export function RouteCreator() {
   
   const handleCreateRoute = () => {
     if (selectedOrigin && selectedDestination) {
-      const originCity = getCity(selectedOrigin);
-      const destinationCity = getCity(selectedDestination);
+      const originAirport = getAirport(selectedOrigin);
+      const destinationAirport = getAirport(selectedDestination);
       
-      if (originCity && destinationCity) {
-        const routeName = `${originCity.name} - ${destinationCity.name}`;
-        const route = createRoute(routeName, selectedOrigin, selectedDestination);
+      if (originAirport && destinationAirport) {
+        const originCity = getCity(originAirport.cityId);
+        const destinationCity = getCity(destinationAirport.cityId);
         
-        if (route) {
-          // Reset form
-          setSelectedOrigin('');
-          setSelectedDestination('');
-          setSelectedAircraft('');
+        if (originCity && destinationCity) {
+          const routeName = `${originAirport.code} - ${destinationAirport.code}`;
+          const route = createRoute(routeName, selectedOrigin, selectedDestination);
+          
+          if (route) {
+            // Reset form
+            setSelectedOrigin('');
+            setSelectedDestination('');
+            setSelectedAircraft('');
+          }
         }
       }
     }
@@ -44,39 +51,45 @@ export function RouteCreator() {
   
   // Filter destinations based on selected aircraft range
   const getValidDestinations = () => {
-    if (!selectedOrigin || !selectedAircraft) return cities;
+    if (!selectedOrigin || !selectedAircraft) return airports;
     
     const aircraft = availableAircraft.find(a => a.id === selectedAircraft);
-    if (!aircraft) return cities;
+    if (!aircraft) return airports;
     
     const aircraftType = getAircraftType(aircraft.aircraftTypeId);
-    if (!aircraftType) return cities;
+    if (!aircraftType) return airports;
     
-    return cities.filter(city => {
-      if (city.id === selectedOrigin) return false;
-      const distance = calculateCityDistance(selectedOrigin, city.id);
+    return airports.filter(airport => {
+      if (airport.id === selectedOrigin) return false;
+      const distance = calculateAirportDistance(selectedOrigin, airport.id);
       return distance <= aircraftType.range;
     });
   };
   
   const generateRouteInfo = () => {
     if (!selectedOrigin || !selectedDestination) return null;
-    
-    const originCity = getCity(selectedOrigin);
-    const destinationCity = getCity(selectedDestination);
+    const originAirport = getAirport(selectedOrigin);
+    const destinationAirport = getAirport(selectedDestination);
+    if (!originAirport || !destinationAirport) return null;
+    const originCity = getCity(originAirport.cityId);
+    const destinationCity = getCity(destinationAirport.cityId);
     if (!originCity || !destinationCity) return null;
-    
-    const distance = calculateCityDistance(selectedOrigin, selectedDestination);
+    const distance = calculateAirportDistance(selectedOrigin, selectedDestination);
     const isDomestic = originCity.country === destinationCity.country;
+    
+    // Only show owned aircraft types
+    const ownedTypes = ownedAircraftTypes.map(typeId => getAircraftType(typeId)).filter(Boolean);
     
     return {
       distance,
       isDomestic,
-      travelTimes: getAvailableAircraftTypes().map(aircraft => ({
-        aircraft: aircraft.name,
-        time: calculateTravelTime(selectedOrigin, selectedDestination, aircraft.speed),
-        inRange: distance <= aircraft.range
-      }))
+      travelTimes: ownedTypes.map(aircraft => ({
+        aircraft: aircraft!.name,
+        time: calculateAirportTravelTime(selectedOrigin, selectedDestination, aircraft!.speed),
+        inRange: distance <= aircraft!.range
+      })),
+      originAirportId: selectedOrigin,
+      destinationCityId: destinationCity.id
     };
   };
   
@@ -92,23 +105,26 @@ export function RouteCreator() {
         {/* City Selection Controls */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">Origin City</label>
+            <label className="text-sm font-medium mb-2 block">Origin Airport</label>
             <Select value={selectedOrigin} onValueChange={setSelectedOrigin}>
               <SelectTrigger>
                 <SelectValue placeholder="Select origin" />
               </SelectTrigger>
               <SelectContent>
-                {cities.map((city) => (
-                  <SelectItem key={city.id} value={city.id}>
-                    {city.name}, {city.country}
-                  </SelectItem>
-                ))}
+                {airports.map((airport) => {
+                  const city = getCity(airport.cityId);
+                  return (
+                    <SelectItem key={airport.id} value={airport.id}>
+                      {airport.code} - {airport.name} ({city?.name})
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Destination City</label>
+            <label className="text-sm font-medium mb-2 block">Destination Airport</label>
             <Select 
               value={selectedDestination} 
               onValueChange={setSelectedDestination}
@@ -118,11 +134,14 @@ export function RouteCreator() {
                 <SelectValue placeholder="Select destination" />
               </SelectTrigger>
               <SelectContent>
-                {getValidDestinations().map((city) => (
-                  <SelectItem key={city.id} value={city.id}>
-                    {city.name}, {city.country}
-                  </SelectItem>
-                ))}
+                {getValidDestinations().map((airport) => {
+                  const city = getCity(airport.cityId);
+                  return (
+                    <SelectItem key={airport.id} value={airport.id}>
+                      {airport.code} - {airport.name} ({city?.name})
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -147,22 +166,22 @@ export function RouteCreator() {
           </div>
         </div>
         
-        {/* City Cards Display */}
+        {/* Airport Cards Display */}
         {(selectedOrigin || selectedDestination) && (
           <div className="space-y-4">
-            {/* Side-by-side City Cards */}
+            {/* Side-by-side Airport Cards */}
             {(selectedOrigin || selectedDestination) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedOrigin && (
                   <div>
-                    <h4 className="font-medium mb-2 text-sm text-muted-foreground">Origin City</h4>
-                    <CityCard city={getCity(selectedOrigin)!} />
+                    <h4 className="font-medium mb-2 text-sm text-muted-foreground">Origin Airport</h4>
+                    <AirportCard airport={getAirport(selectedOrigin)!} />
                   </div>
                 )}
                 {selectedDestination && (
                   <div>
-                    <h4 className="font-medium mb-2 text-sm text-muted-foreground">Destination City</h4>
-                    <CityCard city={getCity(selectedDestination)!} />
+                    <h4 className="font-medium mb-2 text-sm text-muted-foreground">Destination Airport</h4>
+                    <AirportCard airport={getAirport(selectedDestination)!} />
                   </div>
                 )}
               </div>
@@ -179,7 +198,7 @@ export function RouteCreator() {
             {/* Distance Info */}
             {selectedOrigin && selectedDestination && (
               <div className="text-sm text-muted-foreground text-center">
-                Total Distance: {formatNumber(calculateCityDistance(selectedOrigin, selectedDestination))} km
+                Total Distance: {formatNumber(calculateAirportDistance(selectedOrigin, selectedDestination))} km
               </div>
             )}
           </div>

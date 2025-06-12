@@ -97,7 +97,6 @@ class TutorialService {
    * Start a tutorial (placeholder)
    */
   startTutorial(tutorialId: string): void {
-    console.log(`Starting tutorial: ${tutorialId}`);
     // Tutorial implementation would go here
     this.markAsSeen(tutorialId);
   }

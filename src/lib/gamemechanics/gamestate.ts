@@ -27,6 +27,9 @@ export interface GameState {
   completedFlights: Flight[]; // Flight history
   cities: City[];
   totalIncome: number;
+  
+  // Passenger demand system (aggregate)
+  waitingPassengerMap: Record<string, { count: number; lastUpdated: number }>;
 }
 
 // Initialize with default values
@@ -41,7 +44,8 @@ let gameState: GameState = {
   activeFlights: [],
   completedFlights: [],
   cities: [],
-  totalIncome: 0
+  totalIncome: 0,
+  waitingPassengerMap: {}
 };
 
 export function getGameState(): GameState {
@@ -83,7 +87,8 @@ export function resetGameState(): void {
     activeFlights: [],
     completedFlights: [],
     cities: [],
-    totalIncome: 0
+    totalIncome: 0,
+    waitingPassengerMap: {}
   };
 }
 
@@ -127,7 +132,8 @@ export function createNewPlayer(companyName: string): void {
     activeFlights: [],
     completedFlights: [],
     cities: [],
-    totalIncome: 0
+    totalIncome: 0,
+    waitingPassengerMap: {}
   });
   
   // Initialize cities

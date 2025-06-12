@@ -1,37 +1,43 @@
 // New route management service for Blueskye Air Management Game
-// Supports permanent routes with aircraft assignment
+// Now supports airport-based routes with passenger demand system
 
 import { Route, Flight, RouteStats } from './routeTypes';
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
 import { getAircraft, updateAircraftStatus } from '../aircraft/fleetService';
 import { getAircraftType } from '../aircraft/aircraftData';
-import { calculateCityDistance, calculateTravelTime } from '../geography/distanceService';
+import { calculateAirportDistance, calculateAirportTravelTime } from '../geography/distanceService';
 import { getCity } from '../geography/cityData';
-
+import { getAirport } from '../geography/airportData';
+import { getWaitingPassengersForPair } from '../geography/passengerDemandService';
 
 // Generate unique IDs
 function generateRouteId(): string {
   return 'route-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
 }
 
-
-
-// Create a new permanent route
+// Create a new permanent route between airports
 export const createRoute = displayManager.createActionHandler((
   name: string,
-  originCityId: string,
-  destinationCityId: string,
+  originAirportId: string,
+  destinationAirportId: string,
   pricePerPassenger?: number
 ): Route | null => {
-  const originCity = getCity(originCityId);
-  const destinationCity = getCity(destinationCityId);
+  const originAirport = getAirport(originAirportId);
+  const destinationAirport = getAirport(destinationAirportId);
+  
+  if (!originAirport || !destinationAirport) {
+    return null;
+  }
+  
+  const originCity = getCity(originAirport.cityId);
+  const destinationCity = getCity(destinationAirport.cityId);
   
   if (!originCity || !destinationCity) {
     return null;
   }
   
-  const distance = calculateCityDistance(originCityId, destinationCityId);
+  const distance = calculateAirportDistance(originAirportId, destinationAirportId);
   const isDomestic = originCity.country === destinationCity.country;
   
   // Calculate optimal pricing if not provided
@@ -44,13 +50,13 @@ export const createRoute = displayManager.createActionHandler((
   
   // Use aircraft speed for flight time calculation (will be recalculated when aircraft assigned)
   const averageSpeed = 800; // km/h - average commercial aircraft speed
-  const flightTime = calculateTravelTime(originCityId, destinationCityId, averageSpeed);
+  const flightTime = calculateAirportTravelTime(originAirportId, destinationAirportId, averageSpeed);
   
   const newRoute: Route = {
     id: generateRouteId(),
     name,
-    originCityId,
-    destinationCityId,
+    originAirportId,
+    destinationAirportId,
     distance,
     flightTime,
     isActive: false,
@@ -101,7 +107,7 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
     ...route,
     assignedAircraftIds: [...route.assignedAircraftIds, aircraftId],
     isActive: true,
-    flightTime: calculateTravelTime(route.originCityId, route.destinationCityId, aircraftType.speed)
+    flightTime: calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed)
   };
   
   updateGameState({ routes: updatedRoutes });
@@ -159,6 +165,18 @@ export function getRoute(routeId: string): Route | undefined {
 export function getActiveFlights(): Flight[] {
   const gameState = getGameState();
   return gameState.activeFlights || [];
+}
+
+// Get waiting passengers for a specific route
+export function getRoutePassengerDemand(routeId: string): number {
+  const route = getRoute(routeId);
+  if (!route) return 0;
+  const originAirport = getAirport(route.originAirportId);
+  const destinationAirport = getAirport(route.destinationAirportId);
+  if (!originAirport || !destinationAirport) return 0;
+  const destinationCity = getCity(destinationAirport.cityId);
+  if (!destinationCity) return 0;
+  return getWaitingPassengersForPair(route.originAirportId, destinationCity.id);
 }
 
 // Get route statistics

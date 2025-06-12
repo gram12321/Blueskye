@@ -3,6 +3,7 @@
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
 import { calculateAbsoluteDays,  DAYS_PER_WEEK} from '../gamemechanics/utils';
+import { notificationService } from '../notifications/notificationService';
 
 // Transaction interface for recording money movements
 export interface Transaction {
@@ -97,8 +98,16 @@ export const addMoney = displayManager.createActionHandler((
   
   // Log transaction if not silent
   if (!options.silent) {
-    const action = amount > 0 ? 'Earned' : 'Spent';
-    console.log(`${action} €${Math.abs(amount)} - ${description}`);
+    // Only notify for aircraft purchase/sale, not admin cheat
+    if (category === 'Aircraft Purchase') {
+      notificationService.info(`Purchased aircraft: ${description}`, { category: 'Finance' });
+    } else if (category === 'Aircraft Sale') {
+      notificationService.success(`Sold aircraft: ${description}`, { category: 'Finance' });
+    } else if (category === 'Admin' || (description && description.toLowerCase().includes('cheat'))) {
+      // Do not log or notify for admin cheat
+    } else {
+      // Optionally notify for other categories if needed
+    }
   }
   
   return true;
