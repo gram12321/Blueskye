@@ -1,10 +1,10 @@
 import { getGameState } from '../../lib/gamemechanics/gameState';
-import { advanceWeek } from '../../lib/gamemechanics/gameTick';
+import { advanceDay } from '../../lib/gamemechanics/gameTick';
 import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
 import { displayManager, useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
 import { Button, Badge, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN';
-import { MenuIcon, User, Settings, ShieldCheck, LogOut } from 'lucide-react';
+import { MenuIcon, User, Settings, ShieldCheck, LogOut, Plane, Map } from 'lucide-react';
 import { uiEmojis } from '@/components/ui/resources/emojiMap';
 import { useState } from 'react';
 import { playerService } from '../../lib/player/playerService';
@@ -26,6 +26,8 @@ interface NavigationItem {
 // Simplified navigation items for air management game
 const navigation: NavigationItem[] = [
   { name: 'Company', view: 'Company', icon: uiEmojis.company },
+  { name: 'Fleet', view: 'Fleet', icon: uiEmojis.aircraft },
+  { name: 'Routes', view: 'Routes', icon: uiEmojis.route },
   { name: 'Finance', view: 'Finance', icon: uiEmojis.finance },
   { name: 'Tradepedia', view: 'Tradepedia', icon: uiEmojis.book },
 ];
@@ -35,8 +37,8 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
   const gameState = getGameState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleAdvanceWeek = displayManager.createActionHandler(() => {
-    advanceWeek();
+  const handleAdvanceDay = displayManager.createActionHandler(() => {
+    advanceDay();
   });
 
   const handleNavigation = (newView: string) => {
@@ -50,8 +52,9 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
   };
 
   const formattedDate = formatGameDate({
+    day: gameState.day || 1,
     week: gameState.week || 1,
-    season: gameState.season || 'Spring',
+    month: gameState.month || 1,
     year: gameState.year || 2024,
   });
 
@@ -112,19 +115,19 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
             </Badge>
             
             <Button 
-              id="end-week-button"
-              onClick={handleAdvanceWeek}
+              id="end-day-button"
+              onClick={handleAdvanceDay}
               variant="secondary" 
               size="sm"
               className="hidden sm:flex items-center gap-1.5 px-2 transition-all hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 border border-transparent group"
             >
               <span className="group-hover:animate-pulse">{uiEmojis.time}</span>
-              <span>End Week</span>
+              <span>End Day</span>
             </Button>
             
             <Button 
-              id="end-week-button-mobile"
-              onClick={handleAdvanceWeek}
+              id="end-day-button-mobile"
+              onClick={handleAdvanceDay}
               variant="ghost" 
               size="icon"
               className="sm:hidden text-primary-foreground"
@@ -181,9 +184,11 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
                 <DropdownMenuSeparator />
                 
                 {[
-                  { view: 'Profile', icon: User },
-                  { view: 'Settings', icon: Settings },
+                  { view: 'Profile', icon: User, label: 'Profile' },
+                  { view: 'Settings', icon: Settings, label: 'Settings' },
                   { view: 'Admin', icon: ShieldCheck, label: 'Admin Dashboard' },
+                  { view: 'Fleet', icon: Plane, label: 'Fleet' },
+                  { view: 'Routes', icon: Map, label: 'Routes' },
                 ].map(({ view: viewName, icon: Icon, label }) => (
                   <DropdownMenuItem 
                     key={viewName} 

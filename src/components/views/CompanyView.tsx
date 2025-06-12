@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getGameState } from '@/lib/gamemechanics/gameState';
 import { useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
-import { formatNumber, formatCurrency, formatGameDate, Season } from '@/lib/gamemechanics/utils';
+import { formatNumber, formatCurrency, formatGameDate } from '@/lib/gamemechanics/utils';
 import { uiEmojis, formatEuro } from '@/components/ui/resources/emojiMap';
 import { ViewHeader } from '@/components/ui/ViewHeader';
 import { Card, CardContent } from '@/components/ui/ShadCN';
@@ -15,8 +15,9 @@ import { getHighscores, ScoreType } from '@/lib/highscore/highscoreService';
 export interface CompanyInfo {
   // Basic info
   name: string;
+  day: number;
   week: number;
-  season: Season;
+  month: number;
   year: number;
   
   // Financial data
@@ -69,8 +70,9 @@ export function CompanyView(): React.ReactElement | null {
   
   // Format the game date
   const formattedDate = formatGameDate({
+    day: gameState.day,
     week: gameState.week,
-    season: gameState.season,
+    month: gameState.month,
     year: gameState.year
   });
   

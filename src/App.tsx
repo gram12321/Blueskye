@@ -8,11 +8,13 @@ import { PlaceholderView } from './components/views/PlaceholderView'
 import { ProfileView } from './components/views/ProfileView'
 import { SettingsView } from './components/views/SettingsView'
 import { AdminDashboardView } from './components/views/AdminDashboardView'
+import { FleetView } from './components/views/FleetView'
+import { RouteView } from './components/views/RouteView'
 import { uiEmojis } from './components/ui/resources/emojiMap'
 import { useDisplayUpdate } from './lib/gamemechanics/displayManager'
 import { Toaster } from './components/ui/ShadCN/Toaster'
 
-export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin'
+export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin' | 'Fleet' | 'Routes'
 
 function App() {
   const [view, setView] = useState<View>('Login')
@@ -25,12 +27,10 @@ function App() {
     // Reset game state
     updateGameState({
       player: null,
+      day: 1,
       week: 1,
-      season: 'Spring',
+      month: 1,
       year: 2024,
-      politicalPower: 0,
-      population: [],
-      populationLimit: 100
     })
     setSkipAutoLogin(true) // Prevent auto-login after logout
     setView('Login')
@@ -104,6 +104,8 @@ function App() {
           {view === 'Profile' && <ProfileView setView={setView} />}
           {view === 'Settings' && <SettingsView setView={setView} />}
           {view === 'Admin' && <AdminDashboardView setView={setView} />}
+          {view === 'Fleet' && <FleetView />}
+          {view === 'Routes' && <RouteView />}
         </main>
       </div>
     )

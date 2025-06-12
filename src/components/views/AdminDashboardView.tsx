@@ -76,9 +76,9 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
   const handleAddMoneyCheat = () => {
     const currentState = getGameState();
     if (currentState.player) {
-      const success = addMoney(10000, 'Admin', 'Admin cheat: Add €10,000');
+      const success = addMoney(100000000, 'Admin', 'Admin cheat: Add €100,000,000');
       if (success) {
-        notificationService.success(`Added €10,000 (Total: €${(currentState.player.money + 10000).toLocaleString()})`, { category: 'Admin' });
+        notificationService.success(`Added €100,000,000 (Total: €${(currentState.player.money + 100000000).toLocaleString()})`, { category: 'Admin' });
       } else {
         notificationService.info('Failed to add money.', { category: 'Admin' });
       }
@@ -146,7 +146,7 @@ export function AdminDashboardView({ setView }: AdminDashboardViewProps) {
                 variant="secondary" 
                 onClick={handleAddMoneyCheat}
               >
-                Add €10,000 {uiEmojis.euro}
+                Add €100M {uiEmojis.euro}
               </Button>
             </div>
           </div>

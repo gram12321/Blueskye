@@ -9,7 +9,7 @@ export interface HighScore {
 }
 
 // Placeholder function - will be implemented with proper storage later
-export async function getHighscores(limit: number = 10, scoreType: ScoreType = 'gold'): Promise<HighScore[]> {
+export async function getHighscores(_limit: number = 10, _scoreType: ScoreType = 'gold'): Promise<HighScore[]> {
   // Return empty array for now - this will be expanded later
   return [];
 } 

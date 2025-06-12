@@ -1,16 +1,25 @@
 // Date system constants
-export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
-export const SEASONS: Season[] = ['Spring', 'Summer', 'Fall', 'Winter'];
-export const WEEKS_PER_SEASON = 12;
-export const SEASONS_PER_YEAR = 4;
+export const DAYS_PER_WEEK = 7;
+export const WEEKS_PER_MONTH = 4;
+export const MONTHS_PER_YEAR = 12;
+export const DAYS_PER_MONTH = DAYS_PER_WEEK * WEEKS_PER_MONTH; // 28 days
+export const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR; // 336 days
+
+export const STARTING_DAY = 1;
 export const STARTING_WEEK = 1;
-export const STARTING_SEASON: Season = 'Spring';
+export const STARTING_MONTH = 1;
 export const STARTING_YEAR = 2024;
+
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 // Game Date structure
 export interface GameDate {
+  day: number;
   week: number;
-  season: Season;
+  month: number;
   year: number;
 }
 
@@ -18,18 +27,40 @@ export interface GameDate {
  * Format a game date as a string
  */
 export function formatGameDate(date: GameDate): string {
-  return `Week ${date.week}, ${date.season} ${date.year}`;
+  const monthName = MONTH_NAMES[date.month - 1] || 'Unknown';
+  return `Day ${date.day}, Week ${date.week}, ${monthName} ${date.year}`;
+}
+
+/**
+ * Format a game date as a short string
+ */
+export function formatGameDateShort(date: GameDate): string {
+  const monthName = MONTH_NAMES[date.month - 1] || 'Unknown';
+  return `${monthName} ${date.year}`;
 }
 
 /**
  * Format a number with appropriate thousand separators and decimal places
+ * Includes compact notation for very large numbers
  */
 export function formatNumber(value: number, options?: {
   decimals?: number;
   forceDecimals?: boolean;
   smartDecimals?: boolean;
+  compact?: boolean;
 }): string {
-  const { decimals = 2, forceDecimals = false, smartDecimals = false } = options || {};
+  const { decimals = 2, forceDecimals = false, smartDecimals = false, compact = false } = options || {};
+  
+  // Compact notation for very large numbers
+  if (compact || Math.abs(value) >= 1000000) {
+    if (Math.abs(value) >= 1000000000) {
+      return (value / 1000000000).toFixed(1) + 'B';
+    } else if (Math.abs(value) >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    } else if (Math.abs(value) >= 1000) {
+      return (value / 1000).toFixed(1) + 'K';
+    }
+  }
   
   // For large numbers (>1000), don't show decimals unless forced
   if (Math.abs(value) >= 1000 && !forceDecimals && !smartDecimals) {
@@ -86,35 +117,57 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Calculate the absolute week number since the start of the game
- * This is useful for comparing dates and calculating age in weeks
+ * Calculate the absolute day number since the start of the game
+ * This is useful for comparing dates and calculating age in days
  */
-export function calculateAbsoluteWeeks(year: number, season: Season, week: number): number {
-  if (!season || typeof year !== 'number' || typeof week !== 'number') {
+export function calculateAbsoluteDays(year: number, month: number, week: number, day: number): number {
+  if (typeof year !== 'number' || typeof month !== 'number' || typeof week !== 'number' || typeof day !== 'number') {
     return 0;
   }
   
   // Calculate how many complete years have passed
   const yearsSinceStart = year - STARTING_YEAR;
   
-  // Get the season index (0-3)
-  const seasonIndex = SEASONS.indexOf(season);
-  const startSeasonIndex = SEASONS.indexOf(STARTING_SEASON);
+  // Calculate total days
+  let totalDays = 0;
   
-  if (seasonIndex === -1) {
-    return 0; // Invalid season
+  // Add days for complete years
+  totalDays += yearsSinceStart * DAYS_PER_YEAR;
+  
+  // Add days for complete months in current year
+  totalDays += (month - STARTING_MONTH) * DAYS_PER_MONTH;
+  
+  // Add days for complete weeks in current month
+  totalDays += (week - STARTING_WEEK) * DAYS_PER_WEEK;
+  
+  // Add days in current week
+  totalDays += (day - STARTING_DAY);
+  
+  return Math.max(0, totalDays);
+}
+
+/**
+ * Calculate the absolute week number since the start of the game
+ * This is useful for comparing dates and calculating age in weeks
+ */
+export function calculateAbsoluteWeeks(year: number, month: number, week: number): number {
+  if (typeof year !== 'number' || typeof month !== 'number' || typeof week !== 'number') {
+    return 0;
   }
+  
+  // Calculate how many complete years have passed
+  const yearsSinceStart = year - STARTING_YEAR;
   
   // Calculate total weeks
   let totalWeeks = 0;
   
   // Add weeks for complete years
-  totalWeeks += yearsSinceStart * SEASONS_PER_YEAR * WEEKS_PER_SEASON;
+  totalWeeks += yearsSinceStart * MONTHS_PER_YEAR * WEEKS_PER_MONTH;
   
-  // Add weeks for complete seasons in current year
-  totalWeeks += (seasonIndex - startSeasonIndex) * WEEKS_PER_SEASON;
+  // Add weeks for complete months in current year
+  totalWeeks += (month - STARTING_MONTH) * WEEKS_PER_MONTH;
   
-  // Add weeks in current season
+  // Add weeks in current month
   totalWeeks += (week - STARTING_WEEK);
   
   return Math.max(0, totalWeeks);

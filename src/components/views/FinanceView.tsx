@@ -1,6 +1,6 @@
 import { getGameState } from '../../lib/gamemechanics/gameState';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
-import { formatNumber, Season, SEASONS, WEEKS_PER_SEASON, STARTING_YEAR, SEASONS_PER_YEAR } from '../../lib/gamemechanics/utils';
+import { formatNumber, MONTH_NAMES, calculateAbsoluteDays } from '../../lib/gamemechanics/utils';
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Badge, Button } from '../ui/ShadCN';
 import { uiEmojis, formatEuro } from '../ui/resources/emojiMap';
@@ -161,28 +161,30 @@ const CashFlow = () => {
   
   // Build filter criteria based on time filter
   const buildFilterCriteria = (timeFilter: string) => {
-    const { season: currentSeason, year: currentYear } = gameState;
+    const { month: currentMonth, year: currentYear } = gameState;
     
     switch (timeFilter) {
+      case 'last_day':
+        return { days: 1 };
       case 'last_week':
         return { weeks: 1 };
       case 'last_4_weeks':
         return { weeks: 4 };
-      case 'current_season':
-        return { season: currentSeason as Season, year: currentYear };
-      case 'last_season':
-        const lastSeasonIndex = SEASONS.indexOf(currentSeason) - 1;
-        if (lastSeasonIndex >= 0) {
-          return { season: SEASONS[lastSeasonIndex] as Season, year: currentYear };
+      case 'current_month':
+        return { month: currentMonth, year: currentYear };
+      case 'last_month':
+        const lastMonth = currentMonth - 1;
+        if (lastMonth >= 1) {
+          return { month: lastMonth, year: currentYear };
         } else {
-          return { season: SEASONS[3] as Season, year: currentYear - 1 };
+          return { month: 12, year: currentYear - 1 };
         }
       case 'current_year':
         return { year: currentYear };
       case 'all_time':
         return { year: 'all' };
       default:
-        return { season: currentSeason as Season, year: currentYear };
+        return { month: currentMonth, year: currentYear };
     }
   };
   
@@ -190,28 +192,32 @@ const CashFlow = () => {
   const filteredTransactions = useMemo(() => {
     const filterCriteria = buildFilterCriteria(timeFilter);
     return transactions.filter((transaction: Transaction) => {
-      if (!transaction.gameWeek || !transaction.gameSeason || !transaction.gameYear) return false;
+      if (!transaction.gameDay || !transaction.gameWeek || !transaction.gameMonth || !transaction.gameYear) return false;
 
       // Apply year filter
       if (filterCriteria.year && filterCriteria.year !== 'all' && transaction.gameYear !== filterCriteria.year) {
         return false;
       }
 
-      // Apply season filter
-      if (filterCriteria.season && ['Spring','Summer','Fall','Winter'].includes(filterCriteria.season) && transaction.gameSeason !== filterCriteria.season) {
+      // Apply month filter
+      if (filterCriteria.month && typeof filterCriteria.month === 'number' && transaction.gameMonth !== filterCriteria.month) {
         return false;
+      }
+
+      // Apply day filter (for relative periods like 'last_day')
+      if ((filterCriteria as any).days && (filterCriteria as any).days > 0) {
+        const currentAbsoluteDays = calculateAbsoluteDays(gameState.year, gameState.month, gameState.week, gameState.day);
+        const transactionAbsoluteDays = calculateAbsoluteDays(transaction.gameYear, transaction.gameMonth, transaction.gameWeek, transaction.gameDay);
+        
+        if (currentAbsoluteDays - transactionAbsoluteDays > (filterCriteria as any).days) return false;
       }
 
       // Apply week filter (for relative periods like 'last_week', 'last_4_weeks')
       if ((filterCriteria as any).weeks && (filterCriteria as any).weeks > 0) {
-        const currentAbsoluteWeek = (gameState.year - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                                  + SEASONS.indexOf(gameState.season) * WEEKS_PER_SEASON 
-                                  + gameState.week;
-        const transactionAbsoluteWeek = (transaction.gameYear - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                                      + SEASONS.indexOf(transaction.gameSeason) * WEEKS_PER_SEASON 
-                                      + transaction.gameWeek;
+        const currentAbsoluteDays = calculateAbsoluteDays(gameState.year, gameState.month, gameState.week, gameState.day);
+        const transactionAbsoluteDays = calculateAbsoluteDays(transaction.gameYear, transaction.gameMonth, transaction.gameWeek, transaction.gameDay);
         
-        if (currentAbsoluteWeek - transactionAbsoluteWeek > (filterCriteria as any).weeks) return false;
+        if (currentAbsoluteDays - transactionAbsoluteDays > (filterCriteria as any).weeks * 7) return false;
       }
 
       // Apply category filter
@@ -234,7 +240,7 @@ const CashFlow = () => {
     const grouped: { [key: string]: Transaction[] } = {};
     
     filteredTransactions.forEach((transaction: Transaction) => {
-      const dateKey = `${transaction.gameWeek}-${transaction.gameSeason}-${transaction.gameYear}`;
+      const dateKey = `${transaction.gameDay}-${transaction.gameWeek}-${transaction.gameMonth}-${transaction.gameYear}`;
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -243,17 +249,13 @@ const CashFlow = () => {
     
     // Sort by date (newest first)
     const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      const [weekA, seasonA, yearA] = a.split('-');
-      const [weekB, seasonB, yearB] = b.split('-');
+      const [dayA, weekA, monthA, yearA] = a.split('-');
+      const [dayB, weekB, monthB, yearB] = b.split('-');
       
-      const absoluteWeekA = (parseInt(yearA) - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                          + SEASONS.indexOf(seasonA as Season) * WEEKS_PER_SEASON 
-                          + parseInt(weekA);
-      const absoluteWeekB = (parseInt(yearB) - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                          + SEASONS.indexOf(seasonB as Season) * WEEKS_PER_SEASON 
-                          + parseInt(weekB);
+      const absoluteDaysA = calculateAbsoluteDays(parseInt(yearA), parseInt(monthA), parseInt(weekA), parseInt(dayA));
+      const absoluteDaysB = calculateAbsoluteDays(parseInt(yearB), parseInt(monthB), parseInt(weekB), parseInt(dayB));
       
-      return absoluteWeekB - absoluteWeekA; // Newest first
+      return absoluteDaysB - absoluteDaysA; // Newest first
     });
     
     return sortedKeys.map(key => ({
@@ -279,18 +281,20 @@ const CashFlow = () => {
   
   // Parse date key for display
   const parseDateKey = (key: string) => {
-    const [week, season, year] = key.split('-');
+    const [day, week, month, year] = key.split('-');
     return {
+      day: parseInt(day),
       week: parseInt(week),
-      season: season as Season,
+      month: parseInt(month),
       year: parseInt(year)
     };
   };
   
   // Format date for display
   const formatDisplayDate = (dateKey: string) => {
-    const { week, season, year } = parseDateKey(dateKey);
-    return `Week ${week}, ${season} ${year}`;
+    const { day, week, month, year } = parseDateKey(dateKey);
+    const monthName = MONTH_NAMES[month - 1] || 'Unknown';
+    return `Day ${day}, Week ${week}, ${monthName} ${year}`;
   };
   
   // Calculate category summaries
@@ -323,10 +327,11 @@ const CashFlow = () => {
               <SelectValue placeholder="Time Period" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="last_day">Last Day</SelectItem>
               <SelectItem value="last_week">Last Week</SelectItem>
               <SelectItem value="last_4_weeks">Last 4 Weeks</SelectItem>
-              <SelectItem value="current_season">Current Season</SelectItem>
-              <SelectItem value="last_season">Last Season</SelectItem>
+              <SelectItem value="current_month">Current Month</SelectItem>
+              <SelectItem value="last_month">Last Month</SelectItem>
               <SelectItem value="current_year">Current Year</SelectItem>
               <SelectItem value="all_time">All Time</SelectItem>
             </SelectContent>

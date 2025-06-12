@@ -9,7 +9,7 @@ import { notificationService } from '../notifications/notificationService';
  * Constants for player initialization
  */
 export const PLAYER_INIT_VALUES = {
-  STARTING_MONEY: 10000, // Starting money in euros
+  STARTING_MONEY: 100000000, // Starting money in euros (100 million)
 };
 
 /**
@@ -55,8 +55,9 @@ export function getCompanyDetails(companyNames: string[]): Record<string, Compan
     
     details[name] = {
       name,
+      day: gameState.day,
       week: gameState.week,
-      season: gameState.season,
+      month: gameState.month,
       year: gameState.year,
       money: gameState.player?.money ?? 0,
       companyValue: companyValue.companyValue,

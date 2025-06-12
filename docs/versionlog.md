@@ -37,8 +37,7 @@
 
 - React + TypeScript
 - Tailwind CSS
-- LocalStorage persistence // not implemented
-- AI-assisted development // not implemented
+- LocalStorage persistence (storageService.ts)
 - Centralized game state management (gameState.ts)
 - Display management system (displayManager.ts)
 

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, 
 import { getCurrentPlayer, loginOrCreateCompany, getCompanyDetails } from '../../lib/player/playerService';
 import { useEffect, useState } from 'react';
 import { storageService, PlayerData } from '../../lib/localStorage/storageService';
-import { formatNumber, formatGameDate, STARTING_YEAR, STARTING_SEASON, STARTING_WEEK, calculateAbsoluteWeeks, Season } from '../../lib/gamemechanics/utils';
+import { formatNumber, formatGameDate, STARTING_YEAR, STARTING_DAY, STARTING_WEEK, STARTING_MONTH, calculateAbsoluteDays } from '../../lib/gamemechanics/utils';
 import { formatEuro } from '../ui/resources/emojiMap';
 import { CompanyInfo } from './CompanyView';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
@@ -51,7 +51,7 @@ export function ProfileView({ setView }: ProfileViewProps) {
   const [selectedAvatar, setSelectedAvatar] = useState('default');
   const [selectedColor, setSelectedColor] = useState('blue');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'name' | 'money' | 'value' | 'lastPlayed' | 'ageInWeeks'>('name');
+  const [sortOption, setSortOption] = useState<'name' | 'money' | 'value' | 'lastPlayed' | 'ageInDays'>('name');
   
   // Subscribe to display updates
   useDisplayUpdate();
@@ -76,21 +76,21 @@ export function ProfileView({ setView }: ProfileViewProps) {
     setCompanyDetails(details);
   };
 
-  // Helper function to calculate total weeks elapsed for a company
-  const calculateWeeksElapsed = (company: CompanyInfo): number => {
-    if (company.year == null || company.season == null || company.week == null) {
+  // Helper function to calculate total days elapsed for a company
+  const calculateDaysElapsed = (company: CompanyInfo): number => {
+    if (company.year == null || company.month == null || company.week == null || company.day == null) {
       return 0; 
     }
     
-    // Use the new utility function - cast season string to Season type
-    const companyAbsoluteWeeks = calculateAbsoluteWeeks(company.year, company.season as Season, company.week);
-    const gameStartAbsoluteWeeks = calculateAbsoluteWeeks(STARTING_YEAR, STARTING_SEASON, STARTING_WEEK);
+    // Use the new utility function
+    const companyAbsoluteDays = calculateAbsoluteDays(company.year, company.month, company.week, company.day);
+    const gameStartAbsoluteDays = calculateAbsoluteDays(STARTING_YEAR, STARTING_MONTH, STARTING_WEEK, STARTING_DAY);
     
-    // Ensure at least 1 week if the company date is valid but somehow same as start date after calculation
-    if (companyAbsoluteWeeks === 0 && (company.year >= STARTING_YEAR)) return 1;
-    if (companyAbsoluteWeeks === 0) return 0;
+    // Ensure at least 1 day if the company date is valid but somehow same as start date after calculation
+    if (companyAbsoluteDays === 0 && (company.year >= STARTING_YEAR)) return 1;
+    if (companyAbsoluteDays === 0) return 0;
 
-    return Math.max(1, companyAbsoluteWeeks - gameStartAbsoluteWeeks + 1);
+    return Math.max(1, companyAbsoluteDays - gameStartAbsoluteDays + 1);
   };
 
   // Calculate aggregated stats across all companies
@@ -102,14 +102,14 @@ export function ProfileView({ setView }: ProfileViewProps) {
     const companies = Object.values(companyDetails);
     const totalMoney = companies.reduce((sum, company) => sum + company.money, 0);
     const totalValue = companies.reduce((sum, company) => sum + company.companyValue, 0);
-    const totalWeeksSum = companies.reduce((sum, company) => sum + calculateWeeksElapsed(company), 0);
-    const avgWeeks = companies.length > 0 ? totalWeeksSum / companies.length : 0;
+    const totalDaysSum = companies.reduce((sum, company) => sum + calculateDaysElapsed(company), 0);
+    const avgDays = companies.length > 0 ? totalDaysSum / companies.length : 0;
     
     return {
       totalMoney,
       totalValue,
       totalCompanies: companies.length,
-      avgWeeks: Math.round(avgWeeks)
+      avgDays: Math.round(avgDays)
     };
   };
 
@@ -208,8 +208,8 @@ export function ProfileView({ setView }: ProfileViewProps) {
       switch (sortOption) {
         case 'name':
           return companyA.name.localeCompare(companyB.name);
-        case 'ageInWeeks':
-          return calculateWeeksElapsed(companyB) - calculateWeeksElapsed(companyA);
+        case 'ageInDays':
+          return calculateDaysElapsed(companyB) - calculateDaysElapsed(companyA);
         case 'money':
           return companyB.money - companyA.money;
         case 'value':
@@ -391,8 +391,8 @@ export function ProfileView({ setView }: ProfileViewProps) {
                   </Card>
                   <Card className="bg-primary/5">
                     <CardContent className="p-4 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">Avg. Week</p>
-                      <p className="text-xl font-semibold">{stats.avgWeeks}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Avg. Days</p>
+                      <p className="text-xl font-semibold">{stats.avgDays}</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-primary/5">
@@ -430,7 +430,7 @@ export function ProfileView({ setView }: ProfileViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="ageInWeeks">Age (Weeks)</SelectItem>
+                  <SelectItem value="ageInDays">Age (Days)</SelectItem>
                   <SelectItem value="money">Money (highest first)</SelectItem>
                   <SelectItem value="value">Value (highest first)</SelectItem>
                   <SelectItem value="lastPlayed">Last played</SelectItem>
@@ -493,8 +493,8 @@ export function ProfileView({ setView }: ProfileViewProps) {
                             <div>
                               <h3 className="font-semibold text-sm truncate">{companyName}</h3>
                               <p className="text-xs text-muted-foreground">
-                                {details && details.week != null && details.season != null && details.year != null 
-                                  ? formatGameDate({ week: details.week, season: details.season, year: details.year })
+                                {details && details.day != null && details.week != null && details.month != null && details.year != null 
+                                  ? formatGameDate({ day: details.day, week: details.week, month: details.month, year: details.year })
                                   : 'N/A'
                                 }
                               </p>

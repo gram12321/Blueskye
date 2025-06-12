@@ -2,6 +2,7 @@
 
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
+import { calculateAbsoluteDays,  DAYS_PER_WEEK} from '../gamemechanics/utils';
 
 // Transaction interface for recording money movements
 export interface Transaction {
@@ -10,8 +11,9 @@ export interface Transaction {
   category: string;     // Like "Sales", "Purchases", "Building", etc.
   description: string;  // Detailed description
   timestamp: Date;      // When it happened
+  gameDay: number;      // Game day when transaction occurred
   gameWeek: number;     // Game week when transaction occurred
-  gameSeason: 'Spring' | 'Summer' | 'Fall' | 'Winter';   // Game season when transaction occurred
+  gameMonth: number;    // Game month when transaction occurred
   gameYear: number;     // Game year when transaction occurred
   balance: number;      // Balance after transaction
 }
@@ -73,8 +75,9 @@ export const addMoney = displayManager.createActionHandler((
     category,
     description,
     timestamp: new Date(),
+    gameDay: gameState.day,
     gameWeek: gameState.week,
-    gameSeason: gameState.season,
+    gameMonth: gameState.month,
     gameYear: gameState.year,
     balance: newMoney
   };
@@ -114,8 +117,9 @@ export const getTransactionsByCategory = (category: string): Transaction[] => {
  * Calculate income and expenses by category for a given period
  */
 export const calculateCashFlow = (filter: { 
-  weeks?: number; 
-  season?: 'Spring' | 'Summer' | 'Fall' | 'Winter' | 'current' | 'all'; 
+  days?: number; 
+  weeks?: number;
+  month?: number | 'current' | 'all'; 
   year?: number | 'current' | 'all' 
 }): {
   income: Record<string, number>;
@@ -124,15 +128,10 @@ export const calculateCashFlow = (filter: {
 } => {
   const gameState = getGameState() as any;
   const transactions: Transaction[] = gameState.transactions || [];
-  const { week: currentWeek, season: currentSeason, year: currentYear } = gameState;
-  
-  const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
-  const STARTING_YEAR = 2024;
-  const WEEKS_PER_SEASON = 13;
-  const SEASONS_PER_YEAR = 4;
+  const { day: currentDay, week: currentWeek, month: currentMonth, year: currentYear } = gameState;
   
   const filteredTransactions = transactions.filter((t: Transaction) => {
-    if (!t.gameWeek || !t.gameSeason || !t.gameYear) return false;
+    if (!t.gameDay || !t.gameWeek || !t.gameMonth || !t.gameYear) return false;
 
     // Filter by year
     if (filter.year && filter.year !== 'all') {
@@ -140,23 +139,26 @@ export const calculateCashFlow = (filter: {
       if (t.gameYear !== targetYear) return false;
     }
 
-    // Filter by season (only if year matches or year filter is not strict)
-    if (filter.season && filter.season !== 'all' && (!filter.year || filter.year === 'all' || t.gameYear === (filter.year === 'current' ? currentYear : filter.year))) {
-        const targetSeason = filter.season === 'current' ? currentSeason : filter.season;
-        if (t.gameSeason !== targetSeason) return false;
+    // Filter by month (only if year matches or year filter is not strict)
+    if (filter.month && filter.month !== 'all' && (!filter.year || filter.year === 'all' || t.gameYear === (filter.year === 'current' ? currentYear : filter.year))) {
+        const targetMonth = filter.month === 'current' ? currentMonth : filter.month;
+        if (t.gameMonth !== targetMonth) return false;
+    }
+    
+    // Filter by number of days (relative to current date)
+    if (filter.days && filter.days > 0) {
+        const currentAbsoluteDays = calculateAbsoluteDays(currentYear, currentMonth, currentWeek, currentDay);
+        const transactionAbsoluteDays = calculateAbsoluteDays(t.gameYear, t.gameMonth, t.gameWeek, t.gameDay);
+                                      
+        if (currentAbsoluteDays - transactionAbsoluteDays > filter.days) return false;
     }
     
     // Filter by number of weeks (relative to current date)
     if (filter.weeks && filter.weeks > 0) {
-        // Calculate the absolute week number for the transaction and current state
-        const currentAbsoluteWeek = (currentYear - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                                  + SEASONS.indexOf(currentSeason) * WEEKS_PER_SEASON 
-                                  + currentWeek;
-        const transactionAbsoluteWeek = (t.gameYear - STARTING_YEAR) * SEASONS_PER_YEAR * WEEKS_PER_SEASON 
-                                      + SEASONS.indexOf(t.gameSeason) * WEEKS_PER_SEASON 
-                                      + t.gameWeek;
+        const currentAbsoluteDays = calculateAbsoluteDays(currentYear, currentMonth, currentWeek, currentDay);
+        const transactionAbsoluteDays = calculateAbsoluteDays(t.gameYear, t.gameMonth, t.gameWeek, t.gameDay);
                                       
-        if (currentAbsoluteWeek - transactionAbsoluteWeek > filter.weeks) return false;
+        if (currentAbsoluteDays - transactionAbsoluteDays > filter.weeks * DAYS_PER_WEEK) return false;
     }
     
     return true;

@@ -2,6 +2,9 @@
 // This is a minimal implementation to support the frontend components
 
 import { storageService } from '../localStorage/storageService';
+import { Aircraft } from '../aircraft/aircraftTypes';
+import { Route } from '../routes/routeTypes';
+import { City } from '../geography/cityTypes';
 
 export interface Player {
   companyName: string;
@@ -12,23 +15,31 @@ export interface Player {
 
 export interface GameState {
   player: Player | null;
+  day: number;
   week: number;
-  season: 'Spring' | 'Summer' | 'Fall' | 'Winter';
+  month: number;
   year: number;
-  politicalPower: number;
-  population: any[]; // Placeholder array
-  populationLimit: number;
+  
+  // Aircraft and route management
+  fleet: Aircraft[];
+  activeRoutes: Route[];
+  completedRoutes: Route[];
+  cities: City[];
+  totalIncome: number;
 }
 
 // Initialize with default values
 let gameState: GameState = {
   player: null,
+  day: 1,
   week: 1,
-  season: 'Spring',
+  month: 1,
   year: 2024,
-  politicalPower: 0,
-  population: [],
-  populationLimit: 100
+  fleet: [],
+  activeRoutes: [],
+  completedRoutes: [],
+  cities: [],
+  totalIncome: 0
 };
 
 export function getGameState(): GameState {
@@ -61,12 +72,15 @@ export function updatePlayerMoney(amount: number): void {
 export function resetGameState(): void {
   gameState = {
     player: null,
+    day: 1,
     week: 1,
-    season: 'Spring',
+    month: 1,
     year: 2024,
-    politicalPower: 0,
-    population: [],
-    populationLimit: 100
+    fleet: [],
+    activeRoutes: [],
+    completedRoutes: [],
+    cities: [],
+    totalIncome: 0
   };
 }
 
@@ -90,7 +104,7 @@ export function createNewPlayer(companyName: string): void {
   const now = new Date();
   const newPlayer: Player = {
     companyName,
-    money: 10000, // Starting money in euros
+    money: 100000000, // Starting money in euros (100 million)
     createdAt: now,
     lastPlayed: now
   };
@@ -101,12 +115,26 @@ export function createNewPlayer(companyName: string): void {
   
   // Initialize with default values for new company
   updateGameState({
+    day: 1,
     week: 1,
-    season: 'Spring',
+    month: 1,
     year: 2024,
-    politicalPower: 0,
-    population: [],
-    populationLimit: 100
+    fleet: [],
+    activeRoutes: [],
+    completedRoutes: [],
+    cities: [],
+    totalIncome: 0
+  });
+  
+  // Initialize cities
+  initializeCities();
+}
+
+// Initialize cities data
+export function initializeCities(): void {
+  import('../geography/cityData').then(({ getAllCities }) => {
+    const cities = getAllCities();
+    updateGameState({ cities });
   });
 }
 
