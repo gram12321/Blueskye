@@ -1,3 +1,12 @@
+## [0.010]  - 2025-06-12 - Route Scheduling & Aircraft Assignment + hour time system
+
+### Major Features & Changes
+- **Route Scheduling**:
+  - **NEW**: Route scheduling system to manage aircraft assignments and flight times.
+  - **NEW**: Hour-based time system for flight progression.
+
+
+
 ## [0.009]  - 2025-06-12 - Enhanced Passenger Demand Visualization & Map Integration
 
 ### Major Features & Changes

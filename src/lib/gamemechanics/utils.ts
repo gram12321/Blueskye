@@ -17,6 +17,7 @@ export const MONTH_NAMES = [
 
 // Game Date structure
 export interface GameDate {
+  hour: number;
   day: number;
   week: number;
   month: number;
@@ -24,11 +25,12 @@ export interface GameDate {
 }
 
 /**
- * Format a game date as a string
+ * Format the current game date for display
  */
-export function formatGameDate(date: GameDate): string {
-  const monthName = MONTH_NAMES[date.month - 1] || 'Unknown';
-  return `Day ${date.day}, Week ${date.week}, ${monthName} ${date.year}`;
+export function formatGameDate(gameState: { hour: number; day: number; week: number; month: number; year: number }): string {
+  const monthName = MONTH_NAMES[gameState.month - 1] || 'Unknown';
+  const hourStr = gameState.hour.toString().padStart(2, '0');
+  return `${hourStr}:00 - Day ${gameState.day}, Week ${gameState.week}, ${monthName} ${gameState.year}`;
 }
 
 /**
@@ -171,4 +173,17 @@ export function calculateAbsoluteWeeks(year: number, month: number, week: number
   totalWeeks += (week - STARTING_WEEK);
   
   return Math.max(0, totalWeeks);
+}
+
+/**
+ * Calculate the absolute hour number since the start of the game
+ * This is useful for comparing dates and calculating age in hours
+ */
+export function calculateAbsoluteHours(year: number, month: number, week: number, day: number, hour: number): number {
+  if (typeof year !== 'number' || typeof month !== 'number' || typeof week !== 'number' || typeof day !== 'number' || typeof hour !== 'number') {
+    return 0;
+  }
+  
+  const absoluteDays = calculateAbsoluteDays(year, month, week, day);
+  return absoluteDays * 24 + hour;
 } 

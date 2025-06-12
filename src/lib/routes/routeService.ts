@@ -1,7 +1,7 @@
 // New route management service for Blueskye Air Management Game
 // Now supports airport-based routes with passenger demand system
 
-import { Route, Flight, RouteStats } from './routeTypes';
+import { Route, Flight, RouteStats, AircraftSchedule } from './routeTypes';
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
 import { getAircraft, updateAircraftStatus } from '../aircraft/fleetService';
@@ -10,6 +10,7 @@ import { calculateAirportDistance, calculateAirportTravelTime } from '../geograp
 import { getCity } from '../geography/cityData';
 import { getAirport } from '../geography/airportData';
 import { getWaitingPassengersForPair } from '../geography/passengerDemandService';
+import { HOURS_PER_DAY } from '../gamemechanics/gameTick';
 
 // Generate unique IDs
 function generateRouteId(): string {
@@ -61,6 +62,7 @@ export const createRoute = displayManager.createActionHandler((
     flightTime,
     isActive: false,
     assignedAircraftIds: [],
+    aircraftSchedules: [],
     pricePerPassenger: pricing,
     totalFlights: 0,
     totalRevenue: 0,
@@ -75,10 +77,19 @@ export const createRoute = displayManager.createActionHandler((
   return newRoute;
 });
 
-// Assign aircraft to a route
+// Calculate maximum possible daily flights for an aircraft on a route
+function calculateMaxDailyFlights(flightTime: number): number {
+  const totalRoundTripTime = flightTime * 2; // Outbound + return
+  const turnaroundTime = 1; // 1 hour for turnaround
+  const totalTimePerFlight = totalRoundTripTime + turnaroundTime;
+  return Math.floor(HOURS_PER_DAY / totalTimePerFlight);
+}
+
+// Assign aircraft to a route with scheduling
 export const assignAircraftToRoute = displayManager.createActionHandler((
   routeId: string,
-  aircraftId: string
+  aircraftId: string,
+  dailyFlights?: number // Optional: specify number of daily flights
 ): boolean => {
   const gameState = getGameState();
   const routes = gameState.routes || [];
@@ -101,13 +112,33 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
     return false;
   }
   
-  // Update route with assigned aircraft
+  // Calculate flight time for this specific aircraft
+  const flightTime = calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed);
+  
+  // Calculate maximum possible daily flights
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime);
+  
+  // Use provided daily flights or default to maximum
+  const scheduledFlights = dailyFlights ? Math.min(dailyFlights, maxDailyFlights) : maxDailyFlights;
+  
+  // Calculate total hours per day
+  const totalHoursPerDay = (flightTime * 2 + 1) * scheduledFlights; // 2x flight time + 1h turnaround
+  
+  // Create new schedule
+  const newSchedule: AircraftSchedule = {
+    aircraftId,
+    dailyFlights: scheduledFlights,
+    totalHoursPerDay
+  };
+  
+  // Update route with assigned aircraft and schedule
   const updatedRoutes = [...routes];
   updatedRoutes[routeIndex] = {
     ...route,
     assignedAircraftIds: [...route.assignedAircraftIds, aircraftId],
+    aircraftSchedules: [...(route.aircraftSchedules || []), newSchedule],
     isActive: true,
-    flightTime: calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed)
+    flightTime
   };
   
   updateGameState({ routes: updatedRoutes });
@@ -117,6 +148,60 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   
   return true;
 });
+
+// Update aircraft schedule for a route
+export const updateAircraftSchedule = displayManager.createActionHandler((
+  routeId: string,
+  aircraftId: string,
+  dailyFlights: number
+): boolean => {
+  const gameState = getGameState();
+  const routes = gameState.routes || [];
+  const route = routes.find(r => r.id === routeId);
+  
+  if (!route) return false;
+  
+  const aircraft = getAircraft(aircraftId);
+  const aircraftType = aircraft ? getAircraftType(aircraft.aircraftTypeId) : null;
+  
+  if (!aircraft || !aircraftType) return false;
+  
+  // Calculate flight time for this specific aircraft
+  const flightTime = calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed);
+  
+  // Calculate maximum possible daily flights
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime);
+  
+  // Ensure daily flights doesn't exceed maximum
+  const scheduledFlights = Math.min(dailyFlights, maxDailyFlights);
+  
+  // Calculate total hours per day
+  const totalHoursPerDay = (flightTime * 2 + 1) * scheduledFlights;
+  
+  // Update the schedule
+  const updatedRoutes = routes.map(r => {
+    if (r.id === routeId) {
+      return {
+        ...r,
+        aircraftSchedules: r.aircraftSchedules.map(schedule => 
+          schedule.aircraftId === aircraftId
+            ? { ...schedule, dailyFlights: scheduledFlights, totalHoursPerDay }
+            : schedule
+        )
+      };
+    }
+    return r;
+  });
+  
+  updateGameState({ routes: updatedRoutes });
+  return true;
+});
+
+// Get aircraft schedule for a route
+export function getAircraftSchedule(routeId: string, aircraftId: string): AircraftSchedule | undefined {
+  const route = getRoute(routeId);
+  return route?.aircraftSchedules?.find(schedule => schedule.aircraftId === aircraftId);
+}
 
 // Remove aircraft from a route
 export const removeAircraftFromRoute = displayManager.createActionHandler((

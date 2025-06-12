@@ -1,10 +1,10 @@
 import { getGameState } from '../../lib/gamemechanics/gameState';
-import { advanceDay } from '../../lib/gamemechanics/gameTick';
+import { advanceDay, advanceHour } from '../../lib/gamemechanics/gameTick';
 import { formatNumber, formatGameDate } from '@/lib/gamemechanics/utils';
 import { cn } from '@/lib/gamemechanics/tailwindUtils';
 import { displayManager, useDisplayUpdate } from '@/lib/gamemechanics/displayManager';
 import { Button, Badge, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/ShadCN';
-import { MenuIcon, User, Settings, ShieldCheck, LogOut } from 'lucide-react';
+import { MenuIcon, User, Settings, ShieldCheck, LogOut, Clock, Calendar } from 'lucide-react';
 import { uiEmojis } from '@/components/ui/resources/emojiMap';
 import { useState } from 'react';
 import { playerService } from '../../lib/player/playerService';
@@ -39,6 +39,10 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
   const gameState = getGameState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const handleAdvanceHour = displayManager.createActionHandler(() => {
+    advanceHour();
+  });
+
   const handleAdvanceDay = displayManager.createActionHandler(() => {
     advanceDay();
   });
@@ -54,6 +58,7 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
   };
 
   const formattedDate = formatGameDate({
+    hour: gameState.hour || 0,
     day: gameState.day || 1,
     week: gameState.week || 1,
     month: gameState.month || 1,
@@ -112,29 +117,41 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
             >
               <span>{uiEmojis.day}</span>
               <span className="font-medium">
-                Week {gameState.week}
+                {gameState.hour?.toString().padStart(2, '0') || '00'}:00
               </span>
             </Badge>
             
             <Button 
-              id="end-day-button"
+              id="advance-hour-button"
+              onClick={handleAdvanceHour}
+              variant="secondary" 
+              size="sm"
+              className="hidden sm:flex items-center gap-1.5 px-2 transition-all hover:bg-green-100 hover:text-green-700 hover:border-green-300 border border-transparent group"
+            >
+              <Clock className="h-3 w-3 group-hover:animate-pulse" />
+              <span>+1 Hour</span>
+            </Button>
+            
+            <Button 
+              id="advance-day-button"
               onClick={handleAdvanceDay}
               variant="secondary" 
               size="sm"
               className="hidden sm:flex items-center gap-1.5 px-2 transition-all hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 border border-transparent group"
             >
-              <span className="group-hover:animate-pulse">{uiEmojis.time}</span>
-              <span>End Day</span>
+              <Calendar className="h-3 w-3 group-hover:animate-pulse" />
+              <span>+1 Day</span>
             </Button>
             
             <Button 
-              id="end-day-button-mobile"
-              onClick={handleAdvanceDay}
+              id="advance-hour-button-mobile"
+              onClick={handleAdvanceHour}
               variant="ghost" 
               size="icon"
               className="sm:hidden text-primary-foreground"
+              title="Advance 1 Hour"
             >
-              <span className="text-lg">{uiEmojis.time}</span>
+              <Clock className="h-4 w-4" />
             </Button>
             
             <Badge 

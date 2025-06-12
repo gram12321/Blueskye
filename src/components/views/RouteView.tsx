@@ -4,18 +4,23 @@ import {
   getRouteStats, 
   assignAircraftToRoute, 
   removeAircraftFromRoute, 
-  deleteRoute 
+  deleteRoute,
+  updateAircraftSchedule,
+  getAircraftSchedule
 } from '../../lib/routes/routeService';
 import { getAvailableAircraft, getFleet } from '../../lib/aircraft/fleetService';
 import { getAircraftType } from '../../lib/aircraft/aircraftData';
 import { getCity } from '../../lib/geography/cityData';
 import { getAirport } from '../../lib/geography/airportData';
+import { getGameState } from '../../lib/gamemechanics/gameState';
 
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/ShadCN/Card';
 import { Button } from '../ui/ShadCN/Button';
 import { Badge } from '../ui/ShadCN/Badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ShadCN/Select';
+import { Input } from '../ui/ShadCN/Input';
+import { Progress } from '../ui/ShadCN/Progress';
 import { RouteCreator } from '../ui/RouteCreator';
 import { formatNumber } from '../../lib/gamemechanics/utils';
 
@@ -26,6 +31,7 @@ export function RouteView() {
   const routeStats = getRouteStats();
   const availableAircraft = getAvailableAircraft();
   const fleet = getFleet();
+  const gameState = getGameState();
   
   const handleAssignAircraft = (routeId: string, aircraftId: string) => {
     assignAircraftToRoute(routeId, aircraftId);
@@ -119,6 +125,9 @@ export function RouteView() {
                   fleet.find(aircraft => aircraft.id === id)
                 ).filter(Boolean);
                 
+                // Get active flights for this route
+                const activeFlights = gameState.activeFlights.filter(flight => flight.routeId === route.id);
+                
                 return (
                   <Card key={route.id}>
                     <CardHeader className="pb-3">
@@ -159,6 +168,44 @@ export function RouteView() {
                         </div>
                       </div>
                       
+                      {/* Active Flights */}
+                      {activeFlights.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-2">Active Flights:</h4>
+                          <div className="space-y-3">
+                            {activeFlights.map((flight) => {
+                              const aircraft = fleet.find(a => a.id === flight.aircraftId);
+                              const aircraftType = aircraft ? getAircraftType(aircraft.aircraftTypeId) : null;
+                              
+                              return (
+                                <div key={flight.id} className="bg-muted/50 rounded-lg p-3">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <div className="font-medium">
+                                        {aircraftType?.name} ({flight.direction})
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {flight.passengers} / {flight.maxPassengers} passengers
+                                      </div>
+                                    </div>
+                                    <Badge variant="outline">
+                                      {flight.remainingTime.toFixed(1)}h remaining
+                                    </Badge>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                      <span>Flight Progress</span>
+                                      <span>{flight.currentProgress.toFixed(1)}%</span>
+                                    </div>
+                                    <Progress value={flight.currentProgress} className="h-2" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Assigned Aircraft */}
                       {assignedAircraft.length > 0 && (
                         <div>
@@ -167,21 +214,50 @@ export function RouteView() {
                             {assignedAircraft.map((aircraft) => {
                               if (!aircraft) return null;
                               const aircraftType = getAircraftType(aircraft.aircraftTypeId);
+                              const schedule = getAircraftSchedule(route.id, aircraft.id);
+                              
                               return (
-                                <div key={aircraft.id} className="flex justify-between items-center bg-muted/50 rounded-lg p-2">
-                                  <div className="flex-1">
-                                    <div className="font-medium">{aircraftType?.name}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      ID: {aircraft.id.slice(-8)} • Condition: {aircraft.condition}%
+                                <div key={aircraft.id} className="flex flex-col gap-2 bg-muted/50 rounded-lg p-3">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <div className="font-medium">{aircraftType?.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        ID: {aircraft.id.slice(-8)} • Condition: {aircraft.condition}%
+                                      </div>
                                     </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRemoveAircraft(route.id, aircraft.id)}
+                                    >
+                                      Remove
+                                    </Button>
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleRemoveAircraft(route.id, aircraft.id)}
-                                  >
-                                    Remove
-                                  </Button>
+                                  
+                                  {/* Schedule Management */}
+                                  {schedule && (
+                                    <div className="mt-2 pt-2 border-t border-muted">
+                                      <div className="flex items-center gap-2">
+                                        <label className="text-sm font-medium">Daily Flights:</label>
+                                        <Input
+                                          type="number"
+                                          min={1}
+                                          max={Math.floor(24 / (route.flightTime * 2 + 1))}
+                                          value={schedule.dailyFlights}
+                                          onChange={(e) => {
+                                            const value = parseInt(e.target.value);
+                                            if (!isNaN(value)) {
+                                              updateAircraftSchedule(route.id, aircraft.id, value);
+                                            }
+                                          }}
+                                          className="w-20"
+                                        />
+                                        <span className="text-sm text-muted-foreground">
+                                          ({schedule.totalHoursPerDay.toFixed(1)} hours/day)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

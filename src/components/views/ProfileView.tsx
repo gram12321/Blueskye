@@ -494,7 +494,13 @@ export function ProfileView({ setView }: ProfileViewProps) {
                               <h3 className="font-semibold text-sm truncate">{companyName}</h3>
                               <p className="text-xs text-muted-foreground">
                                 {details && details.day != null && details.week != null && details.month != null && details.year != null 
-                                  ? formatGameDate({ day: details.day, week: details.week, month: details.month, year: details.year })
+                                  ? formatGameDate({ 
+                                      hour: details.hour || 0, 
+                                      day: details.day, 
+                                      week: details.week, 
+                                      month: details.month, 
+                                      year: details.year 
+                                    })
                                   : 'N/A'
                                 }
                               </p>

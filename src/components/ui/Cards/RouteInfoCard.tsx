@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ShadCN/Card';
 import { Badge } from '../ShadCN/Badge';
 import { formatNumber } from '../../../lib/gamemechanics/utils';
-import BarChart from '../charts/BarChart';
+import BarChart from '../charts/passengerDemandBarChart';
 import { getWaitingPassengersForPair } from '../../../lib/geography/passengerDemandService';
 import { getAircraft } from '../../../lib/aircraft/fleetService';
 import { getAircraftType } from '../../../lib/aircraft/aircraftData';

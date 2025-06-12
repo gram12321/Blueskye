@@ -70,6 +70,7 @@ export function CompanyView(): React.ReactElement | null {
   
   // Format the game date
   const formattedDate = formatGameDate({
+    hour: gameState.hour || 0,
     day: gameState.day,
     week: gameState.week,
     month: gameState.month,

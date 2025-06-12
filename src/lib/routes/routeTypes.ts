@@ -1,5 +1,13 @@
 // Route type definitions for Blueskye Air Management Game
 
+// Aircraft scheduling information for a route
+export interface AircraftSchedule {
+  aircraftId: string;
+  dailyFlights: number; // Number of round trips per day
+  totalHoursPerDay: number; // Total hours used per day
+  startTime?: number; // Optional start time (0-23)
+}
+
 // Permanent route definition - now uses airports instead of cities
 export interface Route {
   id: string;
@@ -10,6 +18,7 @@ export interface Route {
   flightTime: number; // hours (one way)
   isActive: boolean;
   assignedAircraftIds: string[]; // Aircraft assigned to this route
+  aircraftSchedules: AircraftSchedule[]; // Detailed scheduling information
   pricePerPassenger: number; // euros
   
   // Statistics

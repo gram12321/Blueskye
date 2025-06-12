@@ -15,6 +15,7 @@ export interface Player {
 
 export interface GameState {
   player: Player | null;
+  hour: number;
   day: number;
   week: number;
   month: number;
@@ -35,6 +36,7 @@ export interface GameState {
 // Initialize with default values
 let gameState: GameState = {
   player: null,
+  hour: 0,
   day: 1,
   week: 1,
   month: 1,
@@ -78,6 +80,7 @@ export function updatePlayerMoney(amount: number): void {
 export function resetGameState(): void {
   gameState = {
     player: null,
+    hour: 0,
     day: 1,
     week: 1,
     month: 1,
@@ -123,6 +126,7 @@ export function createNewPlayer(companyName: string): void {
   
   // Initialize with default values for new company
   updateGameState({
+    hour: 0,
     day: 1,
     week: 1,
     month: 1,

@@ -12,6 +12,7 @@ export interface Transaction {
   category: string;     // Like "Sales", "Purchases", "Building", etc.
   description: string;  // Detailed description
   timestamp: Date;      // When it happened
+  gameHour: number;     // Game hour when transaction occurred
   gameDay: number;      // Game day when transaction occurred
   gameWeek: number;     // Game week when transaction occurred
   gameMonth: number;    // Game month when transaction occurred
@@ -76,6 +77,7 @@ export const addMoney = displayManager.createActionHandler((
     category,
     description,
     timestamp: new Date(),
+    gameHour: gameState.hour,
     gameDay: gameState.day,
     gameWeek: gameState.week,
     gameMonth: gameState.month,
@@ -126,6 +128,7 @@ export const getTransactionsByCategory = (category: string): Transaction[] => {
  * Calculate income and expenses by category for a given period
  */
 export const calculateCashFlow = (filter: { 
+  hours?: number;
   days?: number; 
   weeks?: number;
   month?: number | 'current' | 'all'; 
@@ -137,9 +140,10 @@ export const calculateCashFlow = (filter: {
 } => {
   const gameState = getGameState() as any;
   const transactions: Transaction[] = gameState.transactions || [];
-  const { day: currentDay, week: currentWeek, month: currentMonth, year: currentYear } = gameState;
+  const { hour: currentHour, day: currentDay, week: currentWeek, month: currentMonth, year: currentYear } = gameState;
   
   const filteredTransactions = transactions.filter((t: Transaction) => {
+    if (!t.gameHour && t.gameHour !== 0) t.gameHour = 0; // Backward compatibility
     if (!t.gameDay || !t.gameWeek || !t.gameMonth || !t.gameYear) return false;
 
     // Filter by year
@@ -152,6 +156,14 @@ export const calculateCashFlow = (filter: {
     if (filter.month && filter.month !== 'all' && (!filter.year || filter.year === 'all' || t.gameYear === (filter.year === 'current' ? currentYear : filter.year))) {
         const targetMonth = filter.month === 'current' ? currentMonth : filter.month;
         if (t.gameMonth !== targetMonth) return false;
+    }
+    
+    // Filter by number of hours (relative to current time)
+    if (filter.hours && filter.hours > 0) {
+        const currentAbsoluteHours = calculateAbsoluteHours(currentYear, currentMonth, currentWeek, currentDay, currentHour);
+        const transactionAbsoluteHours = calculateAbsoluteHours(t.gameYear, t.gameMonth, t.gameWeek, t.gameDay, t.gameHour || 0);
+                                      
+        if (currentAbsoluteHours - transactionAbsoluteHours > filter.hours) return false;
     }
     
     // Filter by number of days (relative to current date)
@@ -194,6 +206,12 @@ export const calculateCashFlow = (filter: {
   
   return { income, expenses, netCashFlow };
 };
+
+// Helper function to calculate absolute hours since game start
+function calculateAbsoluteHours(year: number, month: number, week: number, day: number, hour: number): number {
+  const absoluteDays = calculateAbsoluteDays(year, month, week, day);
+  return absoluteDays * 24 + hour;
+}
 
 /**
  * Calculate the total value of the current company

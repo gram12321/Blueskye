@@ -145,7 +145,7 @@ const BalanceSheet = () => {
 const CashFlow = () => {
   const gameState = getGameState();
   const transactions = (gameState as any).transactions || [] as Transaction[];
-  const [timeFilter, setTimeFilter] = useState<string>('current_season');
+  const [timeFilter, setTimeFilter] = useState<string>('current_month');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 20;
@@ -161,9 +161,15 @@ const CashFlow = () => {
   
   // Build filter criteria based on time filter
   const buildFilterCriteria = (timeFilter: string) => {
-    const { month: currentMonth, year: currentYear } = gameState;
+    const { hour: currentHour, day: currentDay, week: currentWeek, month: currentMonth, year: currentYear } = gameState;
     
     switch (timeFilter) {
+      case 'last_hour':
+        return { hours: 1 };
+      case 'last_6_hours':
+        return { hours: 6 };
+      case 'last_12_hours':
+        return { hours: 12 };
       case 'last_day':
         return { days: 1 };
       case 'last_week':
@@ -184,7 +190,7 @@ const CashFlow = () => {
       case 'all_time':
         return { year: 'all' };
       default:
-        return { month: currentMonth, year: currentYear };
+        return { hours: 24 }; // Default to last 24 hours
     }
   };
   
@@ -240,7 +246,7 @@ const CashFlow = () => {
     const grouped: { [key: string]: Transaction[] } = {};
     
     filteredTransactions.forEach((transaction: Transaction) => {
-      const dateKey = `${transaction.gameDay}-${transaction.gameWeek}-${transaction.gameMonth}-${transaction.gameYear}`;
+      const dateKey = `${transaction.gameHour || 0}-${transaction.gameDay}-${transaction.gameWeek}-${transaction.gameMonth}-${transaction.gameYear}`;
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -249,13 +255,13 @@ const CashFlow = () => {
     
     // Sort by date (newest first)
     const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      const [dayA, weekA, monthA, yearA] = a.split('-');
-      const [dayB, weekB, monthB, yearB] = b.split('-');
+      const [hourA, dayA, weekA, monthA, yearA] = a.split('-');
+      const [hourB, dayB, weekB, monthB, yearB] = b.split('-');
       
-      const absoluteDaysA = calculateAbsoluteDays(parseInt(yearA), parseInt(monthA), parseInt(weekA), parseInt(dayA));
-      const absoluteDaysB = calculateAbsoluteDays(parseInt(yearB), parseInt(monthB), parseInt(weekB), parseInt(dayB));
+      const absoluteHoursA = calculateAbsoluteHours(parseInt(yearA), parseInt(monthA), parseInt(weekA), parseInt(dayA), parseInt(hourA));
+      const absoluteHoursB = calculateAbsoluteHours(parseInt(yearB), parseInt(monthB), parseInt(weekB), parseInt(dayB), parseInt(hourB));
       
-      return absoluteDaysB - absoluteDaysA; // Newest first
+      return absoluteHoursB - absoluteHoursA; // Newest first
     });
     
     return sortedKeys.map(key => ({
@@ -281,8 +287,9 @@ const CashFlow = () => {
   
   // Parse date key for display
   const parseDateKey = (key: string) => {
-    const [day, week, month, year] = key.split('-');
+    const [hour, day, week, month, year] = key.split('-');
     return {
+      hour: parseInt(hour),
       day: parseInt(day),
       week: parseInt(week),
       month: parseInt(month),
@@ -292,9 +299,15 @@ const CashFlow = () => {
   
   // Format date for display
   const formatDisplayDate = (dateKey: string) => {
-    const { day, week, month, year } = parseDateKey(dateKey);
+    const { hour, day, week, month, year } = parseDateKey(dateKey);
     const monthName = MONTH_NAMES[month - 1] || 'Unknown';
-    return `Day ${day}, Week ${week}, ${monthName} ${year}`;
+    return `${hour.toString().padStart(2, '0')}:00 - Day ${day}, Week ${week}, ${monthName} ${year}`;
+  };
+
+  // Helper function to calculate absolute hours since game start
+  const calculateAbsoluteHours = (year: number, month: number, week: number, day: number, hour: number): number => {
+    const absoluteDays = calculateAbsoluteDays(year, month, week, day);
+    return absoluteDays * 24 + hour;
   };
   
   // Calculate category summaries
@@ -327,6 +340,9 @@ const CashFlow = () => {
               <SelectValue placeholder="Time Period" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="last_hour">Last Hour</SelectItem>
+              <SelectItem value="last_6_hours">Last 6 Hours</SelectItem>
+              <SelectItem value="last_12_hours">Last 12 Hours</SelectItem>
               <SelectItem value="last_day">Last Day</SelectItem>
               <SelectItem value="last_week">Last Week</SelectItem>
               <SelectItem value="last_4_weeks">Last 4 Weeks</SelectItem>
