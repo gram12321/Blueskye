@@ -1,57 +1,30 @@
-import { useState } from 'react';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { 
   getAllRoutes, 
   getRouteStats, 
-  createRoute, 
   assignAircraftToRoute, 
   removeAircraftFromRoute, 
   deleteRoute 
 } from '../../lib/routes/routeService';
-import { CityCard } from '../ui/Cards/CityCard';
-import { RouteInfoCard } from '../ui/Cards/RouteInfoCard';
 import { getAvailableAircraft, getFleet } from '../../lib/aircraft/fleetService';
-import { getAircraftType, getAvailableAircraftTypes } from '../../lib/aircraft/aircraftData';
-import { getAllCities, getCity } from '../../lib/geography/cityData';
-import { calculateCityDistance, calculateTravelTime } from '../../lib/geography/distanceService';
+import { getAircraftType } from '../../lib/aircraft/aircraftData';
+import { getCity } from '../../lib/geography/cityData';
 
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/ShadCN/Card';
 import { Button } from '../ui/ShadCN/Button';
 import { Badge } from '../ui/ShadCN/Badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ShadCN/Select';
-import { Input } from '../ui/ShadCN/Input';
+import { RouteCreator } from '../ui/RouteCreator';
 import { formatNumber } from '../../lib/gamemechanics/utils';
 
 export function RouteView() {
   useDisplayUpdate();
   
-
   const routes = getAllRoutes();
   const routeStats = getRouteStats();
   const availableAircraft = getAvailableAircraft();
   const fleet = getFleet();
-  const cities = getAllCities();
-  
-  // Form state for creating new routes
-  const [routeName, setRouteName] = useState<string>('');
-  const [selectedOrigin, setSelectedOrigin] = useState<string>('');
-  const [selectedDestination, setSelectedDestination] = useState<string>('');
-  const [customPrice, setCustomPrice] = useState<string>('');
-  
-  const handleCreateRoute = () => {
-    if (routeName && selectedOrigin && selectedDestination) {
-      const price = customPrice ? parseFloat(customPrice) : undefined;
-      const route = createRoute(routeName, selectedOrigin, selectedDestination, price);
-      if (route) {
-        // Reset form
-        setRouteName('');
-        setSelectedOrigin('');
-        setSelectedDestination('');
-        setCustomPrice('');
-      }
-    }
-  };
   
   const handleAssignAircraft = (routeId: string, aircraftId: string) => {
     assignAircraftToRoute(routeId, aircraftId);
@@ -78,36 +51,7 @@ export function RouteView() {
     }).format(amount);
   };
   
-  // Filter destinations based on selected origin
-  const getValidDestinations = () => {
-    if (!selectedOrigin) return cities;
-    return cities.filter(city => city.id !== selectedOrigin);
-  };
-  
 
-  
-  // Auto-generate route name when cities are selected
-  const handleOriginChange = (value: string) => {
-    setSelectedOrigin(value);
-    if (value && selectedDestination && !routeName) {
-      const originCity = getCity(value);
-      const destinationCity = getCity(selectedDestination);
-      if (originCity && destinationCity) {
-        setRouteName(`${originCity.name} - ${destinationCity.name}`);
-      }
-    }
-  };
-  
-  const handleDestinationChange = (value: string) => {
-    setSelectedDestination(value);
-    if (selectedOrigin && value && !routeName) {
-      const originCity = getCity(selectedOrigin);
-      const destinationCity = getCity(value);
-      if (originCity && destinationCity) {
-        setRouteName(`${originCity.name} - ${destinationCity.name}`);
-      }
-    }
-  };
   
   return (
     <div className="space-y-6">
@@ -150,109 +94,7 @@ export function RouteView() {
       </Card>
       
       {/* Create New Route */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Route</CardTitle>
-          <CardDescription>Establish a permanent route between two cities</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Route Name</label>
-              <Input
-                value={routeName}
-                onChange={(e) => setRouteName(e.target.value)}
-                placeholder="Enter route name or auto-generate by selecting cities"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Origin City</label>
-                <Select value={selectedOrigin} onValueChange={handleOriginChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select origin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city.id} value={city.id}>
-                        {city.name}, {city.country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Destination City</label>
-                <Select 
-                  value={selectedDestination} 
-                  onValueChange={handleDestinationChange}
-                  disabled={!selectedOrigin}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select destination" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getValidDestinations().map((city) => (
-                      <SelectItem key={city.id} value={city.id}>
-                        {city.name}, {city.country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Custom Price per Passenger (Optional)</label>
-              <Input
-                type="number"
-                value={customPrice}
-                onChange={(e) => setCustomPrice(e.target.value)}
-                placeholder="Leave empty for automatic pricing"
-                min="0"
-              />
-            </div>
-          </div>
-          
-          {/* City Selection Display */}
-          {selectedOrigin && !selectedDestination && (
-            <div>
-              <h4 className="font-medium mb-2">Selected Origin City:</h4>
-              <CityCard city={getCity(selectedOrigin)!} />
-            </div>
-          )}
-          
-          {selectedOrigin && selectedDestination && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Route Information:</h4>
-                <RouteInfoCard routeInfo={{
-                  distance: calculateCityDistance(selectedOrigin, selectedDestination),
-                  isDomestic: getCity(selectedOrigin)!.country === getCity(selectedDestination)!.country,
-                  travelTimes: getAvailableAircraftTypes().map(aircraft => ({
-                    aircraft: aircraft.name,
-                    time: calculateTravelTime(selectedOrigin, selectedDestination, aircraft.speed),
-                    inRange: calculateCityDistance(selectedOrigin, selectedDestination) <= aircraft.range
-                  }))
-                }} />
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Distance: {formatNumber(calculateCityDistance(selectedOrigin, selectedDestination))} km
-              </div>
-            </div>
-          )}
-          
-          <Button 
-            onClick={handleCreateRoute}
-            disabled={!routeName || !selectedOrigin || !selectedDestination}
-            className="w-full md:w-auto"
-          >
-            Create Route
-          </Button>
-        </CardContent>
-      </Card>
+      <RouteCreator />
       
       {/* Route Management */}
       <Card>
