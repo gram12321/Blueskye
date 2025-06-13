@@ -31,8 +31,9 @@ export function RouteInfoCard({ routeInfo }: RouteInfoCardProps) {
   const originAirport = getAirport(routeInfo.originAirportId);
   const destinationCity = getCity(routeInfo.destinationCityId);
   
-  // Calculate demand and seats on market
-  const demand = getWaitingPassengersForPair(routeInfo.originAirportId, routeInfo.destinationCityId);
+  // Calculate demand and seats on market (outbound only - return demand depends on destination airport)
+  const outboundDemand = getWaitingPassengersForPair(routeInfo.originAirportId, routeInfo.destinationCityId);
+  
   let seats = 0;
   if (routeInfo.assignedAircraftIds && routeInfo.flightTime) {
     for (const aircraftId of routeInfo.assignedAircraftIds) {
@@ -47,7 +48,7 @@ export function RouteInfoCard({ routeInfo }: RouteInfoCardProps) {
     }
   }
   const barData = [
-    { label: 'Demand', value: demand, color: '#3b82f6' },
+    { label: 'Outbound Demand', value: outboundDemand, color: '#3b82f6' },
     { label: 'Seats', value: seats, color: '#ef4444' }
   ];
 
@@ -128,7 +129,12 @@ export function RouteInfoCard({ routeInfo }: RouteInfoCardProps) {
           </div>
         </div>
         <div className="pt-2">
-          <BarChart data={barData} height={250} title="Route Demand vs Seats" />
+          <div className="mb-2 text-sm text-muted-foreground">
+            Outbound Demand: {formatNumber(outboundDemand)} passengers 
+            <br />
+            <span className="text-xs">Note: Return demand will be shown after route creation</span>
+          </div>
+          <BarChart data={barData} height={250} title="Route Demand vs Seats (Outbound)" />
         </div>
       </CardContent>
     </Card>

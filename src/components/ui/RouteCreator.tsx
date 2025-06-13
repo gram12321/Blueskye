@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 import { createRoute } from '../../lib/routes/routeService';
-import { getAvailableAircraft, getOwnedAircraftTypes } from '../../lib/aircraft/fleetService';
+import { getOwnedAircraftTypes } from '../../lib/aircraft/fleetService';
 import { getAircraftType } from '../../lib/aircraft/aircraftData';
 import { getCity } from '../../lib/geography/cityData';
 import { getAllAirports, getAirport } from '../../lib/geography/airportData';
@@ -16,14 +16,12 @@ import { formatNumber } from '../../lib/gamemechanics/utils';
 export function RouteCreator() {
   useDisplayUpdate();
   
-  const airports = getAllAirports();
-  const availableAircraft = getAvailableAircraft();
+  const airports = getAllAirports();;
   const ownedAircraftTypes = getOwnedAircraftTypes();
   
   // Form state for creating new routes
   const [selectedOrigin, setSelectedOrigin] = useState<string>('');
   const [selectedDestination, setSelectedDestination] = useState<string>('');
-  const [selectedAircraft, setSelectedAircraft] = useState<string>('');
   
   const handleCreateRoute = () => {
     if (selectedOrigin && selectedDestination) {
@@ -42,7 +40,6 @@ export function RouteCreator() {
             // Reset form
             setSelectedOrigin('');
             setSelectedDestination('');
-            setSelectedAircraft('');
           }
         }
       }
@@ -51,19 +48,8 @@ export function RouteCreator() {
   
   // Filter destinations based on selected aircraft range
   const getValidDestinations = () => {
-    if (!selectedOrigin || !selectedAircraft) return airports;
-    
-    const aircraft = availableAircraft.find(a => a.id === selectedAircraft);
-    if (!aircraft) return airports;
-    
-    const aircraftType = getAircraftType(aircraft.aircraftTypeId);
-    if (!aircraftType) return airports;
-    
-    return airports.filter(airport => {
-      if (airport.id === selectedOrigin) return false;
-      const distance = calculateAirportDistance(selectedOrigin, airport.id);
-      return distance <= aircraftType.range;
-    });
+    if (!selectedOrigin) return airports;
+    return airports.filter(airport => airport.id !== selectedOrigin);
   };
   
   const generateRouteInfo = () => {
@@ -139,25 +125,6 @@ export function RouteCreator() {
                   return (
                     <SelectItem key={airport.id} value={airport.id}>
                       {airport.code} - {airport.name} ({city?.name})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium mb-2 block">Aircraft (Optional)</label>
-            <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select aircraft" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableAircraft.map((aircraft) => {
-                  const aircraftType = getAircraftType(aircraft.aircraftTypeId);
-                  return (
-                    <SelectItem key={aircraft.id} value={aircraft.id}>
-                      {aircraftType?.name} (ID: {aircraft.id.slice(-8)})
                     </SelectItem>
                   );
                 })}

@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge } from '../ShadCN';
-import { Progress } from '../ShadCN/Progress';
+import { Progress } from '../ShadCN/ProgressBar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ShadCN/Tooltip';
 import { getCity } from '../../../lib/geography/cityData';
 import { getAirport } from '../../../lib/geography/airportData';
@@ -9,6 +9,7 @@ import { AircraftType } from '../../../lib/aircraft/aircraftTypes';
 import { Input } from '../ShadCN/Input';
 import { useState } from 'react';
 import { formatCurrency, formatNumber } from '../../../lib/gamemechanics/utils';
+import { getCurrentFlightForAircraft } from '../../../lib/routes/routeService';
 
 interface AircraftCardProps {
   aircraft: Aircraft;
@@ -21,6 +22,9 @@ interface AircraftCardProps {
 
 export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain, onSell, onSetMaintenancePlan }: AircraftCardProps) {
   const [planInput, setPlanInput] = useState(aircraft.maintenancePlan ?? 4);
+
+  // Get current flight information for passenger display
+  const currentFlight = getCurrentFlightForAircraft(aircraft.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -73,7 +77,11 @@ export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain
           </div>
           <div>
             <span className="text-muted-foreground">Passengers:</span>
-            <div className="font-medium">{aircraftType.maxPassengers}</div>
+            <div className="font-medium">
+              {currentFlight 
+                ? `${currentFlight.passengers} / ${aircraftType.maxPassengers}` 
+                : `0 / ${aircraftType.maxPassengers}`}
+            </div>
           </div>
           <div>
             <span className="text-muted-foreground">Current Value:</span>

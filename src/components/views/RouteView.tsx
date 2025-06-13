@@ -1,28 +1,10 @@
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
-import { 
-  getAllRoutes, 
-  getRouteStats, 
-  assignAircraftToRoute, 
-  removeAircraftFromRoute, 
-  deleteRoute,
-  updateAircraftSchedule,
-  getAircraftSchedule
-} from '../../lib/routes/routeService';
+import { getAllRoutes, getRouteStats, assignAircraftToRoute, removeAircraftFromRoute, deleteRoute, updateAircraftSchedule } from '../../lib/routes/routeService';
 import { getAvailableAircraft, getFleet } from '../../lib/aircraft/fleetService';
-import { getAircraftType } from '../../lib/aircraft/aircraftData';
-import { getCity } from '../../lib/geography/cityData';
-import { getAirport } from '../../lib/geography/airportData';
 import { getGameState } from '../../lib/gamemechanics/gameState';
-
 import { ViewHeader } from '../ui/ViewHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/ShadCN/Card';
-import { Button } from '../ui/ShadCN/Button';
-import { Badge } from '../ui/ShadCN/Badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ShadCN/Select';
-import { Input } from '../ui/ShadCN/Input';
-import { FlightProgress } from '../ui/ShadCN/Progress';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/ShadCN'; // Consolidated ShadCN imports
 import { RouteCreator } from '../ui/RouteCreator';
-import { formatNumber } from '../../lib/gamemechanics/utils';
 import { RouteManagement } from '../ui/Cards/RouteManagement';
 
 export function RouteView() {

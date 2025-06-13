@@ -4,12 +4,12 @@ import { Button } from '../ShadCN/Button';
 import { Badge } from '../ShadCN/Badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ShadCN/Select';
 import { Input } from '../ShadCN/Input';
-import { FlightProgress } from '../ShadCN/Progress';
+import { FlightProgress } from '../ShadCN/FlightProgress';
 import { BarChart } from '../charts/passengerDemandBarChart';
 import { getAircraftType } from '../../../lib/aircraft/aircraftData';
 import { getCity } from '../../../lib/geography/cityData';
 import { getAirport } from '../../../lib/geography/airportData';
-import { getRoutePassengerDemand, getAircraftSchedule } from '../../../lib/routes/routeService';
+import { getBidirectionalRoutePassengerDemand, getAircraftSchedule } from '../../../lib/routes/routeService';
 import { formatNumber } from '../../../lib/gamemechanics/utils';
 
 interface RouteManagementProps {
@@ -58,8 +58,8 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
               ).filter(Boolean);
               const activeFlights = gameState.activeFlights.filter((flight: any) => flight.routeId === route.id);
 
-              // Demand and seats for BarChart
-              const demand = getRoutePassengerDemand(route.id);
+              // Bidirectional demand and seats for BarChart
+              const demandData = getBidirectionalRoutePassengerDemand(route.id);
               let seats = 0;
               assignedAircraft.forEach((aircraft: any) => {
                 if (!aircraft) return;
@@ -70,8 +70,9 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                 }
               });
               const barData = [
-                { label: 'Demand', value: demand, color: '#3b82f6' },
-                { label: 'Seats', value: seats, color: '#ef4444' }
+                { label: 'Outbound Demand', value: demandData.outbound, color: '#3b82f6' },
+                { label: 'Return Demand', value: demandData.return, color: '#06b6d4' },
+                { label: 'Daily Seats', value: seats, color: '#ef4444' }
               ];
 
               return (
@@ -113,9 +114,13 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                         <div className="font-medium">{route.averageLoadFactor.toFixed(1)}%</div>
                       </div>
                     </div>
-                    {/* Demand vs Seats BarChart */}
+                    {/* Bidirectional Demand vs Seats BarChart */}
                     <div className="pt-2">
-                      <BarChart data={barData} height={120} title="Demand vs Seats" />
+                      <div className="mb-2 text-sm text-muted-foreground">
+                        Total Demand: {formatNumber(demandData.total)} passengers 
+                        ({formatNumber(demandData.outbound)} outbound + {formatNumber(demandData.return)} return)
+                      </div>
+                      <BarChart data={barData} height={120} title="Bidirectional Demand vs Seats" />
                     </div>
                     {/* Active Flights */}
                     {activeFlights.length > 0 && (
@@ -148,15 +153,17 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                                   <FlightProgress
                                     currentProgress={flight.currentProgress}
                                     flightTime={flight.flightTime}
-                                    turnTime={flight.turnTime}
+                                    originTurnTime={flight.originTurnTime}
+                                    destinationTurnTime={flight.destinationTurnTime}
                                     totalTime={flight.totalRoundTripTime}
                                     currentPhase={flight.currentPhase}
                                     className="h-3"
                                   />
                                   <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>🛫 Outbound: {flight.flightTime.toFixed(1)}h</span>
-                                    <span>🔄 Turn: {flight.turnTime.toFixed(1)}h</span>
-                                    <span>🛬 Return: {flight.flightTime.toFixed(1)}h</span>
+                                    <span>🛫 Origin Turn: {typeof flight.originTurnTime === 'number' ? flight.originTurnTime.toFixed(1) : '-'}h</span>
+                                    <span>✈️ Outbound: {typeof flight.flightTime === 'number' ? flight.flightTime.toFixed(1) : '-'}h</span>
+                                    <span>🔄 Dest Turn: {typeof flight.destinationTurnTime === 'number' ? flight.destinationTurnTime.toFixed(1) : '-'}h</span>
+                                    <span>🛬 Return: {typeof flight.flightTime === 'number' ? flight.flightTime.toFixed(1) : '-'}h</span>
                                   </div>
                                 </div>
                               </div>

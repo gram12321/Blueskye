@@ -1,3 +1,22 @@
+## [0.012]  - 2025-06-13 - Passenger demand system & Route Management UI overhaul
+
+### Major Features & Changes
+- **Passenger Demand Visualization**:
+  - Added interactive bar charts to display outbound, return, and seat capacity for each route, enabling clear comparison of demand vs. available seats.
+  - Route creation now previews demand and aircraft compatibility with a dedicated info card and bar chart.
+- **Route Management UI Overhaul**:
+  - Refactored Route Management into a reusable component with a modern, card-based layout.
+  - Each route card now shows bidirectional demand, daily seat capacity, active flights, assigned aircraft, and detailed flight progress (multi-phase, color-coded progress bars).
+  - Added in-place aircraft assignment, daily flight scheduling, and real-time load factor/revenue stats.
+  - Improved deletion and assignment logic for safer, more intuitive management.
+- **Component & Service Enhancements**:
+  - New `BarChart` component for demand/seat visualization.
+  - Enhanced `RouteInfoCard`, `RouteCreator`, and `AirportCard` to integrate new demand data and visualizations.
+  - Updated `routeService` and `passengerDemandService` with helpers for bidirectional demand and seat calculations.
+- **UX Improvements**:
+  - All UI updates remain fully compliant with Tailwind CSS and Shadcn UI.
+  - Centralized state and display management for consistent, responsive updates across all views.
+
 ## [0.011]  - 2025-06-13 - Aircraft Maintenance System
 
 ### Major Features & Changes
@@ -16,123 +35,38 @@
 ## [0.009]  - 2025-06-12 - Enhanced Passenger Demand Visualization & Map Integration
 
 ### Major Features & Changes
-- **Interactive Data Visualization**:
-  - **NEW**: Interactive pie charts for passenger distribution analysis
-  - **IMPROVED**: Bar chart scaling and responsiveness for better data readability
-  - **ENHANCED**: Chart tooltips with detailed passenger statistics and market insights
-- **Map Integration**:
-  - **NEW**: OpenStreetMap integration for geographical visualization
-  - **NEW**: Airport and route visualization on the map interface
-  - **NEW**: Interactive map markers with passenger demand information
+- **Enhanced UI Visualizations**: Introduced interactive pie charts for passenger distribution, improved bar chart readability, and enhanced chart tooltips with detailed passenger statistics.
+- **Integrated Map System**: Added OpenStreetMap for geographical visualization, including airport and route displays with interactive markers showing passenger demand.
 
 
 ## [0.008]  - 2025-06-12 - Simplified airport and passenger interfaces & data cleanup
 
 ### Major Features & Changes
-- **Interface Simplification**:
-  - **REMOVED**: Airport properties: `capacity`, `hub`, `international` - simplified airport model for cleaner implementation.
-  - **REMOVED**: Passenger property: `priority` - simplified passenger model.
-  - **REMOVED**: City properties: `passengerDemandMultiplier`, `domesticPreference` - simplified city data.
-- **Data Organization**:
-  - **NEW**: `airportData.ts` - moved all airport data from `cityData.ts` to separate dedicated file.
-  - **UPDATED**: Domestic preferences now handled as constants in `passengerDemandService.ts`.
-  - **UPDATED**: All import statements throughout codebase to use new `airportData.ts`.
-- **Component Updates**:
-  - **UPDATED**: `AirportCard` component simplified to show only essential information (coordinates, waiting passengers).
-  - **UPDATED**: `CityCard` component simplified to show only population and coordinates.
-  - **UPDATED**: `GeographyView` and `PassengerDemandView` updated to work with simplified data model.
-- **Service Updates**:
-  - **UPDATED**: `passengerDemandService.ts` to use constant domestic preferences instead of city properties.
-  - **UPDATED**: All route and distance services to import from new `airportData.ts`.
-  - **CLEANED**: Removed all references to removed properties throughout the codebase.
+-   **Data Model Simplification & Refactoring**: Streamlined `Airport`, `Passenger`, and `City` data models by removing unused properties (e.g., `capacity`, `priority`, `domesticPreference`). Airport data was moved from `cityData.ts` to a new `airportData.ts` file, and domestic preferences were centralized as constants in `passengerDemandService.ts`. All related imports and references were updated or removed.
+-   **UI & Service Alignment**: `AirportCard`, `CityCard`, `GeographyView`, and `PassengerDemandView` components were updated to reflect the simplified data models. All route and distance services were also adjusted to integrate with the new `airportData.ts` and simplified data structures.
 
 ## [0.007]  - 2025-06-12 - Airport-based passenger demand system & major overhaul
 
 ### Major Features & Changes
-- **Complete Airport-Based System Redesign**:
-  - **NEW**: Routes now connect airports instead of cities, providing more realistic flight operations.
-  - **NEW**: Airport data with major airports for London (LHR, LGW, LTN), Paris (CDG, ORY), and Lyon (LYS).
-  - Each airport has capacity, hub status, international capability, and specific coordinates.
-- **Revolutionary Passenger Demand System**:
-  - **NEW**: Realistic passenger generation each game week based on city population and demand multipliers.
-  - **NEW**: Intelligent destination selection using exponential distance decay, domestic preferences, and city attractiveness.
-  - **NEW**: Airport distribution system where passengers choose airports based on distance from origin city (Heathrow gets more London passengers than Gatwick, but even Liverpool gets some).
-  - **NEW**: Passenger priority system (business vs leisure travelers) affecting pricing potential.
-- **New UI Components & Views**:
-  - **NEW**: `AirportCard` component displaying airport capacity, utilization, and waiting passengers.
-  - **NEW**: `PassengerDemandView` - comprehensive view showing passenger statistics, airport utilization, and market insights.
-  - Updated `RouteCreator` to work with airports instead of cities, showing airport codes and city information.
-- **Enhanced Route System**:
-  - Routes now use airport IDs (`originAirportId`, `destinationAirportId`) instead of city IDs.
-  - Updated route service with new airport distance calculations and passenger demand integration.
-  - Route displays now show airport codes and city names (e.g., "LHR (London) → CDG (Paris)").
-- **Game State Integration**:
-  - Added `waitingPassengers` array to game state to track generated passengers.
-  - Passenger generation integrated into game tick system (generates new passengers each week).
-  - Updated all existing views (Fleet, Routes, Geography) to work with the new airport system.
-- **Technical Infrastructure**:
-  - New `passengerDemandService.ts` with sophisticated passenger generation algorithms.
-  - Enhanced distance service with airport-to-airport calculations.
-  - Updated route types and services for airport compatibility.
-  - Navigation updated with new "Passengers" view for demand monitoring.
+- **Airport-Centric Operations**: Major redesign to connect routes to specific airports (e.g., LHR, CDG) instead of cities, introducing detailed airport data and properties.
+- **Sophisticated Passenger Demand**: Implemented realistic passenger generation with intelligent destination and airport distribution based on factors like distance and domestic preference.
+- **UI & System Integration**: Introduced new UI components (`AirportCard`, `PassengerDemandView`) and updated existing systems (`RouteCreator`, game tick, route displays) to fully support the new airport-based mechanics.
 
 ## [0.006]  - 2025-06-12 - Advanced Market & Analytics Update
 
 ### Major Features & Changes
-- **Enhanced Passenger Demand System**: 
-  - Improved demand calculations considering both origin and destination city factors
-  - Distance-based demand curves with optimal ranges for different flight types
-  - Seasonal variation and business/leisure travel factors
-  - Domestic preference penalties for international routes when cities favor domestic travel
-- **Dynamic Pricing System**: 
-  - Demand-based pricing adjustments (premium for high demand, discounts for low demand)
-  - Market size factors and distance-based pricing tiers
-  - Minimum viable pricing thresholds to prevent unrealistic low prices
-- **Comprehensive Cost Model**: 
-  - Enhanced operational costs including fuel, airport fees, crew wages, maintenance, and handling costs
-  - Realistic cost structure that affects route profitability
-- **Route Analytics & Profitability Analysis**: 
-  - `src/lib/routes/routeAnalytics.ts`: Advanced analytics for route performance, market analysis, and profitability insights
-  - Performance metrics, market penetration analysis, and optimization recommendations
-  - Market opportunity identification and competition analysis
-- **Geography/Map View**:
-  - `src/components/views/GeographyView.tsx`: New view for city information, demand analysis, distance calculator, and market opportunities
-
+- **Advanced Market Mechanics**: Enhanced passenger demand calculations, dynamic pricing based on demand and market factors, and a comprehensive operational cost model.
+- **Route Analytics & Geography**: Introduced detailed route analytics for profitability and market insights, along with a new `GeographyView` for geographical data and demand analysis.
 
 
 ## [0.005]  - 2025-06-12 - Gamemechanics alpha
 
 ### Major Features & Changes
-- **Core Game Mechanics Implemented**:
-  - **Aircraft System**:
-    - `src/lib/aircraft/aircraftTypes.ts`: Defines aircraft interfaces and properties (speed, range, maxPassengers, cost, fuel consumption).
-    - `src/lib/aircraft/fleetService.ts`: Manages player's fleet (purchase, sell, maintain, track condition/flight hours).
-    - `src/lib/aircraft/aircraftData.ts`: Contains available aircraft types (Boeing, Airbus).
-  - **Cities & Geography**:
-    - `src/lib/geography/cityTypes.ts`: Defines city interfaces (population, country, coordinates, demand multipliers).
-    - `src/lib/geography/cityData.ts`: Initializes and manages city data (London, Paris, Lyon).
-    - `src/lib/geography/distanceService.ts`: Calculates distances and travel times between cities.
-  - **Route Management**:
-    - `src/lib/routes/routeTypes.ts`: Defines route interfaces and status tracking.
-    - `src/lib/routes/routeService.ts`: Manages route creation, progress, income, demand, and completion.
-  - **Game State Integration**:
-    - `src/lib/gamemechanics/gameState.ts`: Extended to include fleet, cities, active/completed routes, and total income.
-    - `src/lib/gamemechanics/gameTick.ts`: Updated to process route progress and income generation each game tick.
-  - **User Interface Components**:
-    - `src/components/views/FleetView.tsx`: Displays owned aircraft, allows purchase/sale/maintenance, shows fleet stats.
-    - `src/components/views/RouteView.tsx`: Displays active routes with progress bars, allows route creation/cancellation, shows route stats.
-    - *(Planned but not yet implemented: Geography/Map View for city info, demand, and route planning)*
-- **Finance System Integration**: All major mechanics now use the centralized finance system for transaction tracking:
-  - Aircraft purchases, sales, and maintenance now record transactions with appropriate categories and descriptions.
-  - Route revenue and flight expenses (fuel costs) are now logged as financial transactions when flights complete.
-- **Realistic Flight Progression**: Flight progress is now based on actual flight hours:
-  - Each game day advances flight progress by a percentage based on the route's real flight time (distance/speed), rather than a fixed weekly increment.
-  - Aircraft flight hours and condition are updated accurately upon route completion.
-- **Improved Transaction Tracking**: All financial actions (buy/sell/maintain aircraft, route revenue/expenses) are visible in the Finance view's cash flow and transaction history.
-- **Bug Fixes & Refactoring**:
-  - Removed direct player money updates from mechanics; all money changes now go through the finance system.
-  - Improved error handling for missing aircraft types and invalid operations.
-  - Enhanced transaction descriptions for clarity in financial reports.
+- **Core Game Mechanics**: Implemented foundational systems for aircraft (fleet management, types), cities & geography (data, distance), and route management (creation, progress, income).
+- **Game State & UI**: Integrated new mechanics into `gameState` and `gameTick`, and introduced `FleetView` and `RouteView` for managing aircraft and routes.
+- **Centralized Finance**: All financial transactions (aircraft purchases, sales, maintenance, route revenue/expenses) now flow through the centralized finance system for accurate tracking and reporting.
+- **Realistic Flight Progression**: Flight progress is now based on actual flight hours, updating aircraft condition and flight hours accordingly.
+- **Refactoring**: General bug fixes and refactoring, including centralizing money updates via the finance system and improving transaction descriptions.
 
 
 ## [0.004]  - 2025-06-12 - Notification system and fixing playerlogin

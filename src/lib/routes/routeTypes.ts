@@ -52,9 +52,10 @@ export interface Flight {
   currentProgress: number; // 0-100%
   remainingTime: number; // hours
   flightTime: number; // hours - actual flight time (one way)
-  turnTime: number; // hours - turnaround time at destination
+  originTurnTime: number; // hours - turnaround time at origin airport
+  destinationTurnTime: number; // hours - turnaround time at destination airport
   totalRoundTripTime: number; // hours - total time for complete round trip
-  currentPhase: 'outbound' | 'turnaround' | 'return'; // Current phase of the flight
+  currentPhase: 'origin-turn' | 'outbound' | 'destination-turn' | 'return'; // Current phase of the flight
 }
 
 export interface RouteAssignment {

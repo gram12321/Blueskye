@@ -10,7 +10,7 @@ import { getAircraftType } from '../aircraft/aircraftData';
 import { calculateAirportDistance, calculateAirportTravelTime } from '../geography/distanceService';
 import { getCity } from '../geography/cityData';
 import { getAirport } from '../geography/airportData';
-import { getWaitingPassengersForPair } from '../geography/passengerDemandService';
+import { getWaitingPassengersForPair, deliverPassengers } from '../geography/passengerDemandService';
 import { HOURS_PER_DAY } from '../gamemechanics/gameTick';
 
 // Generate unique IDs
@@ -79,8 +79,8 @@ export const createRoute = displayManager.createActionHandler((
 });
 
 // Calculate maximum possible daily flights for an aircraft on a route
-function calculateMaxDailyFlights(flightTime: number, turnTime: number): number {
-  const totalRoundTripTime = flightTime * 2 + turnTime; // Outbound + return + turnaround
+function calculateMaxDailyFlights(flightTime: number, originTurnTime: number, destinationTurnTime: number): number {
+  const totalRoundTripTime = originTurnTime + flightTime + destinationTurnTime + flightTime; // Origin turn + outbound + destination turn + return
   return Math.floor(HOURS_PER_DAY / totalRoundTripTime);
 }
 
@@ -92,6 +92,71 @@ function calculateTurnTime(aircraftTypeId: string, airportId: string): number {
   if (!aircraftType || !airport) return 1; // Default 1 hour
   
   return aircraftType.turnTime * airport.turnTimeModifier;
+}
+
+// Get bidirectional passenger demand for a route
+export function getBidirectionalRoutePassengerDemand(routeId: string): { outbound: number; return: number; total: number } {
+  const route = getRoute(routeId);
+  if (!route) return { outbound: 0, return: 0, total: 0 };
+  
+  const originAirport = getAirport(route.originAirportId);
+  const destinationAirport = getAirport(route.destinationAirportId);
+  if (!originAirport || !destinationAirport) return { outbound: 0, return: 0, total: 0 };
+  
+  const originCity = getCity(originAirport.cityId);
+  const destinationCity = getCity(destinationAirport.cityId);
+  if (!originCity || !destinationCity) return { outbound: 0, return: 0, total: 0 };
+  
+  // Outbound: from origin airport to destination city
+  const outbound = getWaitingPassengersForPair(route.originAirportId, destinationCity.id);
+  // Return: from destination airport to origin city  
+  const returnDemand = getWaitingPassengersForPair(route.destinationAirportId, originCity.id);
+  
+  return {
+    outbound,
+    return: returnDemand,
+    total: outbound + returnDemand
+  };
+}
+
+// Get waiting passengers for a specific route (legacy function - now returns outbound only)
+export function getRoutePassengerDemand(routeId: string): number {
+  const route = getRoute(routeId);
+  if (!route) return 0;
+  const originAirport = getAirport(route.originAirportId);
+  const destinationAirport = getAirport(route.destinationAirportId);
+  if (!originAirport || !destinationAirport) return 0;
+  const destinationCity = getCity(destinationAirport.cityId);
+  if (!destinationCity) return 0;
+  return getWaitingPassengersForPair(route.originAirportId, destinationCity.id);
+}
+
+// Helper function to determine which passengers to pick up based on flight direction and phase
+function getPassengersForDirection(route: Route, currentPhase: string): { originAirportId: string; destinationCityId: string } | null {
+  const originAirport = getAirport(route.originAirportId);
+  const destinationAirport = getAirport(route.destinationAirportId);
+  if (!originAirport || !destinationAirport) return null;
+  
+  const originCity = getCity(originAirport.cityId);
+  const destinationCity = getCity(destinationAirport.cityId);
+  if (!originCity || !destinationCity) return null;
+  
+  // Only pick up passengers during origin-turn phase (when boarding)
+  if (currentPhase === 'origin-turn') {
+    // Outbound: from origin airport to destination city
+    return {
+      originAirportId: route.originAirportId,
+      destinationCityId: destinationCity.id
+    };
+  } else if (currentPhase === 'destination-turn') {
+    // Return: from destination airport to origin city
+    return {
+      originAirportId: route.destinationAirportId,
+      destinationCityId: originCity.id
+    };
+  }
+  
+  return null; // Don't pick up passengers during flight phases
 }
 
 // Export the flight processing function for use in gameTick
@@ -110,13 +175,20 @@ export function processContinuousFlights() {
       // Calculate turn times for both airports
       const originTurnTime = calculateTurnTime(schedule.aircraftId, route.originAirportId);
       const destinationTurnTime = calculateTurnTime(schedule.aircraftId, route.destinationAirportId);
-      const avgTurnTime = (originTurnTime + destinationTurnTime) / 2; // Use average for simplicity
       
       // Find or create a flight for this aircraft/route
       let flight = activeFlights.find(f => f.routeId === route.id && f.aircraftId === schedule.aircraftId);
-      const totalRoundTripTime = route.flightTime * 2 + avgTurnTime;
+      const totalRoundTripTime = originTurnTime + route.flightTime + destinationTurnTime + route.flightTime;
       
       if (!flight) {
+        // New flight - pick up outbound passengers (origin->destination)
+        const passengerInfo = getPassengersForDirection(route, 'origin-turn');
+        let actualPassengers = 0;
+        if (passengerInfo) {
+          const maxCapacity = aircraftType.maxPassengers;
+          actualPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, maxCapacity);
+        }
+        
         flight = {
           id: 'flight-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11),
           routeId: route.id,
@@ -125,7 +197,7 @@ export function processContinuousFlights() {
           direction: 'outbound',
           departureTime: new Date(),
           estimatedArrival: new Date(Date.now() + totalRoundTripTime * 60 * 60 * 1000),
-          passengers: Math.floor(aircraftType.maxPassengers * 0.7), // 70% load factor for now
+          passengers: actualPassengers,
           maxPassengers: aircraftType.maxPassengers,
           totalRevenue: 0,
           operationalCosts: 0,
@@ -133,9 +205,10 @@ export function processContinuousFlights() {
           currentProgress: 0,
           remainingTime: totalRoundTripTime,
           flightTime: route.flightTime,
-          turnTime: avgTurnTime,
+          originTurnTime: originTurnTime,
+          destinationTurnTime: destinationTurnTime,
           totalRoundTripTime: totalRoundTripTime,
-          currentPhase: 'outbound'
+          currentPhase: 'origin-turn'
         };
       } else {
         // Advance progress by 1 hour
@@ -143,17 +216,34 @@ export function processContinuousFlights() {
         let newProgress = (flight.currentProgress || 0) + progressIncrement;
         let newRemainingTime = Math.max(0, (flight.remainingTime || totalRoundTripTime) - 1);
         
-        // Determine current phase based on progress
-        let newPhase: 'outbound' | 'turnaround' | 'return' = 'outbound';
-        const outboundProgress = (route.flightTime / totalRoundTripTime) * 100;
-        const turnProgress = outboundProgress + (avgTurnTime / totalRoundTripTime) * 100;
+        // Determine current phase based on progress - realistic 4-phase cycle
+        let newPhase: 'origin-turn' | 'outbound' | 'destination-turn' | 'return' = 'origin-turn';
+        const originTurnProgress = (originTurnTime / totalRoundTripTime) * 100;
+        const outboundProgress = originTurnProgress + (route.flightTime / totalRoundTripTime) * 100;
+        const destinationTurnProgress = outboundProgress + (destinationTurnTime / totalRoundTripTime) * 100;
         
-        if (newProgress <= outboundProgress) {
+        if (newProgress <= originTurnProgress) {
+          newPhase = 'origin-turn';
+        } else if (newProgress <= outboundProgress) {
           newPhase = 'outbound';
-        } else if (newProgress <= turnProgress) {
-          newPhase = 'turnaround';
+        } else if (newProgress <= destinationTurnProgress) {
+          newPhase = 'destination-turn';
         } else {
           newPhase = 'return';
+        }
+        
+        // Check if we're entering destination-turn phase for the first time to pick up return passengers
+        const wasInDestinationTurn = flight.currentPhase === 'destination-turn';
+        const nowInDestinationTurn = newPhase === 'destination-turn';
+        
+        if (nowInDestinationTurn && !wasInDestinationTurn) {
+          // Just entered destination turn - pick up return passengers
+          const passengerInfo = getPassengersForDirection(route, 'destination-turn');
+          if (passengerInfo) {
+            const maxCapacity = aircraftType.maxPassengers;
+            const returnPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, maxCapacity);
+            flight.passengers = returnPassengers; // Replace with return passengers
+          }
         }
         
         if (newProgress >= 100) {
@@ -163,20 +253,38 @@ export function processContinuousFlights() {
             // Add total round trip time to flight hours
             addFlightHours(aircraft.id, totalRoundTripTime);
           }
+          
+          // Pick up new outbound passengers for the next flight cycle
+          const passengerInfo = getPassengersForDirection(route, 'origin-turn');
+          let newPassengers = 0;
+          if (passengerInfo) {
+            newPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, aircraftType.maxPassengers);
+          }
+          
           newProgress = progressIncrement; // Start next flight with 1 hour progress
           newRemainingTime = totalRoundTripTime - 1;
-          newPhase = 'outbound';
+          newPhase = 'origin-turn';
+          
+          // Update the flight with new passengers for the next cycle
+          flight = {
+            ...flight,
+            passengers: newPassengers,
+            currentProgress: newProgress,
+            remainingTime: newRemainingTime,
+            currentPhase: newPhase
+          };
+        } else {
+          flight = {
+            ...flight,
+            currentProgress: newProgress,
+            remainingTime: newRemainingTime,
+            currentPhase: newPhase,
+            flightTime: route.flightTime,
+            originTurnTime: originTurnTime,
+            destinationTurnTime: destinationTurnTime,
+            totalRoundTripTime: totalRoundTripTime
+          };
         }
-        
-        flight = {
-          ...flight,
-          currentProgress: newProgress,
-          remainingTime: newRemainingTime,
-          currentPhase: newPhase,
-          flightTime: route.flightTime,
-          turnTime: avgTurnTime,
-          totalRoundTripTime: totalRoundTripTime
-        };
       }
       updatedFlights.push(flight);
     }
@@ -217,16 +325,15 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   // Calculate turn times
   const originTurnTime = calculateTurnTime(aircraftId, route.originAirportId);
   const destinationTurnTime = calculateTurnTime(aircraftId, route.destinationAirportId);
-  const avgTurnTime = (originTurnTime + destinationTurnTime) / 2;
   
   // Calculate maximum possible daily flights
-  const maxDailyFlights = calculateMaxDailyFlights(flightTime, avgTurnTime);
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime, originTurnTime, destinationTurnTime);
   
   // Use provided daily flights or default to maximum
   const scheduledFlights = dailyFlights ? Math.min(dailyFlights, maxDailyFlights) : maxDailyFlights;
   
   // Calculate total hours per day
-  const totalHoursPerDay = (flightTime * 2 + avgTurnTime) * scheduledFlights;
+  const totalHoursPerDay = (originTurnTime + flightTime + destinationTurnTime + flightTime) * scheduledFlights;
   
   // Create new schedule
   const newSchedule: AircraftSchedule = {
@@ -240,15 +347,12 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   updatedRoutes[routeIndex] = {
     ...route,
     assignedAircraftIds: [...route.assignedAircraftIds, aircraftId],
-    aircraftSchedules: [...(route.aircraftSchedules || []), newSchedule],
-    isActive: true,
-    flightTime
+    aircraftSchedules: [...route.aircraftSchedules, newSchedule],
+    isActive: true
   };
   
   updateGameState({ routes: updatedRoutes });
-  
-  // Update aircraft status to show it's assigned to route
-  updateAircraftStatus(aircraftId, 'available', routeId);
+  updateAircraftStatus(aircraftId, 'in-flight');
   
   return true;
 });
@@ -274,7 +378,7 @@ export const updateAircraftSchedule = displayManager.createActionHandler((
   const flightTime = calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed);
   
   // Calculate maximum possible daily flights
-  const maxDailyFlights = calculateMaxDailyFlights(flightTime, 0);
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime, 0, 0);
   
   // Ensure daily flights doesn't exceed maximum
   const scheduledFlights = Math.min(dailyFlights, maxDailyFlights);
@@ -356,16 +460,11 @@ export function getActiveFlights(): Flight[] {
   return gameState.activeFlights || [];
 }
 
-// Get waiting passengers for a specific route
-export function getRoutePassengerDemand(routeId: string): number {
-  const route = getRoute(routeId);
-  if (!route) return 0;
-  const originAirport = getAirport(route.originAirportId);
-  const destinationAirport = getAirport(route.destinationAirportId);
-  if (!originAirport || !destinationAirport) return 0;
-  const destinationCity = getCity(destinationAirport.cityId);
-  if (!destinationCity) return 0;
-  return getWaitingPassengersForPair(route.originAirportId, destinationCity.id);
+// Get current active flight for an aircraft
+export function getCurrentFlightForAircraft(aircraftId: string): Flight | undefined {
+  const gameState = getGameState();
+  const activeFlights = gameState.activeFlights || [];
+  return activeFlights.find(flight => flight.aircraftId === aircraftId);
 }
 
 // Get route statistics
