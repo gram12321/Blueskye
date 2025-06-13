@@ -161,7 +161,7 @@ const CashFlow = () => {
   
   // Build filter criteria based on time filter
   const buildFilterCriteria = (timeFilter: string) => {
-    const { hour: currentHour, day: currentDay, week: currentWeek, month: currentMonth, year: currentYear } = gameState;
+    const { month: currentMonth, year: currentYear } = gameState;
     
     switch (timeFilter) {
       case 'last_hour':

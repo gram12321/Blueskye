@@ -1,9 +1,15 @@
+## [0.011]  - 2025-06-13 - Aircraft Maintenance System
+
+### Major Features & Changes
+- **Aircraft Maintenance System**: Implemented a staggered, per-aircraft maintenance system based on purchase date and 168 flight-hour intervals. Players can set weekly maintenance plans, with hourly progress processing and condition restoration based on tonnage. Fleet view UI now displays maintenance status, progress, and allows plan management. Weekly maintenance costs are deducted with transaction records.
+- **Bugfixes & Improvements**: Fixed aircraft purchase logic. Maintenance actions are blocked for in-flight aircraft. Fleet statistics and UI accurately reflect aircraft status. Maintenance logic centralized in `fleetService.ts`.
+
 ## [0.010]  - 2025-06-12 - Route Scheduling & Aircraft Assignment + hour time system
 
 ### Major Features & Changes
-- **Route Scheduling**:
-  - **NEW**: Route scheduling system to manage aircraft assignments and flight times.
-  - **NEW**: Hour-based time system for flight progression.
+- **Hour-Based Time System & Route Scheduling**: Transitioned to an hour-based game tick for more realistic flight progression, updating all time-related systems (finance, transactions, UI) and introducing a comprehensive route scheduling system for aircraft assignments.
+- **Aircraft Turn Time & Airport Infrastructure**: Implemented aircraft-specific turn times based on size/complexity and an airport gate system with modifiers, leading to more realistic flight processing. Airport data structures were updated to support this.
+- **Enhanced Flight Progress Visualization**: Introduced multi-phase, color-coded progress bars (outbound, turnaround, return) and detailed flight timing breakdowns in route management, improving aircraft utilization scheduling.
 
 
 

@@ -6,45 +6,55 @@ export const AIRPORTS: Airport[] = [
   // London airports
   {
     id: 'lhr',
-    name: 'London Heathrow',
+    name: 'London Heathrow Airport',
     code: 'LHR',
     cityId: 'london',
     coordinates: {
       latitude: 51.4700,
       longitude: -0.4543
-    }
+    },
+    gates: 1,
+    turnTimeModifier: 1.0 // Normal turn time
   },
   {
     id: 'lgw',
-    name: 'London Gatwick',
+    name: 'London Gatwick Airport',
     code: 'LGW',
     cityId: 'london',
     coordinates: {
       latitude: 51.1481,
       longitude: -0.1903
-    }
+    },
+    gates: 1,
+    turnTimeModifier: 1.0 // Normal turn time
   },
+
   // Paris airports
   {
     id: 'cdg',
-    name: 'Paris Charles de Gaulle',
+    name: 'Charles de Gaulle Airport',
     code: 'CDG',
     cityId: 'paris',
     coordinates: {
       latitude: 49.0097,
       longitude: 2.5479
-    }
+    },
+    gates: 1,
+    turnTimeModifier: 1.0 // Normal turn time
   },
+
   // Lyon airport
   {
     id: 'lys',
-    name: 'Lyon Saint-Exupéry',
+    name: 'Lyon-Saint Exupéry Airport',
     code: 'LYS',
     cityId: 'lyon',
     coordinates: {
-      latitude: 45.7256,
-      longitude: 5.0811
-    }
+      latitude: 48.7194,
+      longitude: 4.9755
+    },
+    gates: 1,
+    turnTimeModifier: 1.0 // Normal turn time
   }
 ];
 

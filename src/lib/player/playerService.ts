@@ -55,6 +55,7 @@ export function getCompanyDetails(companyNames: string[]): Record<string, Compan
     
     details[name] = {
       name,
+      hour: gameState.hour ?? 0,
       day: gameState.day,
       week: gameState.week,
       month: gameState.month,

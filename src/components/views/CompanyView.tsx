@@ -15,6 +15,7 @@ import { getHighscores, ScoreType } from '@/lib/highscore/highscoreService';
 export interface CompanyInfo {
   // Basic info
   name: string;
+  hour: number;
   day: number;
   week: number;
   month: number;

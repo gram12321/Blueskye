@@ -20,6 +20,8 @@ export interface Airport {
   code: string; // IATA/ICAO code
   cityId: string; // Associated city
   coordinates: Coordinates;
+  gates: number; // Number of gates - affects capacity and turn time
+  turnTimeModifier: number; // Multiplier for aircraft turn times (1.0 = normal, >1.0 = slower)
 }
 
 // Individual passenger with destination preference

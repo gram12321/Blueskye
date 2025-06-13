@@ -20,7 +20,7 @@ import { Button } from '../ui/ShadCN/Button';
 import { Badge } from '../ui/ShadCN/Badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ShadCN/Select';
 import { Input } from '../ui/ShadCN/Input';
-import { Progress } from '../ui/ShadCN/Progress';
+import { FlightProgress } from '../ui/ShadCN/Progress';
 import { RouteCreator } from '../ui/RouteCreator';
 import { formatNumber } from '../../lib/gamemechanics/utils';
 
@@ -182,22 +182,34 @@ export function RouteView() {
                                   <div className="flex justify-between items-start mb-2">
                                     <div>
                                       <div className="font-medium">
-                                        {aircraftType?.name} ({flight.direction})
+                                        {aircraftType?.name}
                                       </div>
                                       <div className="text-sm text-muted-foreground">
-                                        {flight.passengers} / {flight.maxPassengers} passengers
+                                        {flight.passengers} / {flight.maxPassengers} passengers • {flight.currentPhase}
                                       </div>
                                     </div>
                                     <Badge variant="outline">
                                       {flight.remainingTime.toFixed(1)}h remaining
                                     </Badge>
                                   </div>
-                                  <div className="space-y-1">
+                                  <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                       <span>Flight Progress</span>
                                       <span>{flight.currentProgress.toFixed(1)}%</span>
                                     </div>
-                                    <Progress value={flight.currentProgress} className="h-2" />
+                                    <FlightProgress
+                                      currentProgress={flight.currentProgress}
+                                      flightTime={flight.flightTime}
+                                      turnTime={flight.turnTime}
+                                      totalTime={flight.totalRoundTripTime}
+                                      currentPhase={flight.currentPhase}
+                                      className="h-3"
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                      <span>🛫 Outbound: {flight.flightTime.toFixed(1)}h</span>
+                                      <span>🔄 Turn: {flight.turnTime.toFixed(1)}h</span>
+                                      <span>🛬 Return: {flight.flightTime.toFixed(1)}h</span>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -237,12 +249,12 @@ export function RouteView() {
                                   {/* Schedule Management */}
                                   {schedule && (
                                     <div className="mt-2 pt-2 border-t border-muted">
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 mb-2">
                                         <label className="text-sm font-medium">Daily Flights:</label>
                                         <Input
                                           type="number"
                                           min={1}
-                                          max={Math.floor(24 / (route.flightTime * 2 + 1))}
+                                          max={Math.floor(24 / (route.flightTime * 2 + (aircraftType?.turnTime || 1.5)))}
                                           value={schedule.dailyFlights}
                                           onChange={(e) => {
                                             const value = parseInt(e.target.value);
@@ -255,6 +267,9 @@ export function RouteView() {
                                         <span className="text-sm text-muted-foreground">
                                           ({schedule.totalHoursPerDay.toFixed(1)} hours/day)
                                         </span>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        Flight: {route.flightTime.toFixed(1)}h × 2 + Turn: {aircraftType?.turnTime || 1.5}h = {(route.flightTime * 2 + (aircraftType?.turnTime || 1.5)).toFixed(1)}h per trip
                                       </div>
                                     </div>
                                   )}

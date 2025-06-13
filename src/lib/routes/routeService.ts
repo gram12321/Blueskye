@@ -78,14 +78,107 @@ export const createRoute = displayManager.createActionHandler((
 });
 
 // Calculate maximum possible daily flights for an aircraft on a route
-function calculateMaxDailyFlights(flightTime: number): number {
-  const totalRoundTripTime = flightTime * 2; // Outbound + return
-  const turnaroundTime = 1; // 1 hour for turnaround
-  const totalTimePerFlight = totalRoundTripTime + turnaroundTime;
-  return Math.floor(HOURS_PER_DAY / totalTimePerFlight);
+function calculateMaxDailyFlights(flightTime: number, turnTime: number): number {
+  const totalRoundTripTime = flightTime * 2 + turnTime; // Outbound + return + turnaround
+  return Math.floor(HOURS_PER_DAY / totalRoundTripTime);
 }
 
-// Assign aircraft to a route with scheduling
+// Calculate actual turn time for an aircraft at an airport
+function calculateTurnTime(aircraftTypeId: string, airportId: string): number {
+  const aircraftType = getAircraftType(aircraftTypeId);
+  const airport = getAirport(airportId);
+  
+  if (!aircraftType || !airport) return 1; // Default 1 hour
+  
+  return aircraftType.turnTime * airport.turnTimeModifier;
+}
+
+// Export the flight processing function for use in gameTick
+export function processContinuousFlights() {
+  const gameState = getGameState();
+  const { routes, activeFlights, fleet } = gameState;
+  const updatedFlights: Flight[] = [];
+
+  for (const route of routes) {
+    if (!route.isActive) continue;
+    for (const schedule of route.aircraftSchedules) {
+      const aircraft = fleet.find(a => a.id === schedule.aircraftId);
+      const aircraftType = aircraft ? getAircraftType(aircraft.aircraftTypeId) : undefined;
+      if (!aircraftType || !aircraft || aircraft.status === 'maintenance') continue;
+      
+      // Calculate turn times for both airports
+      const originTurnTime = calculateTurnTime(schedule.aircraftId, route.originAirportId);
+      const destinationTurnTime = calculateTurnTime(schedule.aircraftId, route.destinationAirportId);
+      const avgTurnTime = (originTurnTime + destinationTurnTime) / 2; // Use average for simplicity
+      
+      // Find or create a flight for this aircraft/route
+      let flight = activeFlights.find(f => f.routeId === route.id && f.aircraftId === schedule.aircraftId);
+      const totalRoundTripTime = route.flightTime * 2 + avgTurnTime;
+      
+      if (!flight) {
+        flight = {
+          id: 'flight-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11),
+          routeId: route.id,
+          aircraftId: schedule.aircraftId,
+          status: 'in-progress',
+          direction: 'outbound',
+          departureTime: new Date(),
+          estimatedArrival: new Date(Date.now() + totalRoundTripTime * 60 * 60 * 1000),
+          passengers: Math.floor(aircraftType.maxPassengers * 0.7), // 70% load factor for now
+          maxPassengers: aircraftType.maxPassengers,
+          totalRevenue: 0,
+          operationalCosts: 0,
+          profit: 0,
+          currentProgress: 0,
+          remainingTime: totalRoundTripTime,
+          flightTime: route.flightTime,
+          turnTime: avgTurnTime,
+          totalRoundTripTime: totalRoundTripTime,
+          currentPhase: 'outbound'
+        };
+      } else {
+        // Advance progress by 1 hour
+        const progressIncrement = 100 / totalRoundTripTime; // Progress per hour
+        let newProgress = (flight.currentProgress || 0) + progressIncrement;
+        let newRemainingTime = Math.max(0, (flight.remainingTime || totalRoundTripTime) - 1);
+        
+        // Determine current phase based on progress
+        let newPhase: 'outbound' | 'turnaround' | 'return' = 'outbound';
+        const outboundProgress = (route.flightTime / totalRoundTripTime) * 100;
+        const turnProgress = outboundProgress + (avgTurnTime / totalRoundTripTime) * 100;
+        
+        if (newProgress <= outboundProgress) {
+          newPhase = 'outbound';
+        } else if (newProgress <= turnProgress) {
+          newPhase = 'turnaround';
+        } else {
+          newPhase = 'return';
+        }
+        
+        if (newProgress >= 100) {
+          // Flight completed, start new one immediately
+          newProgress = progressIncrement; // Start next flight with 1 hour progress
+          newRemainingTime = totalRoundTripTime - 1;
+          newPhase = 'outbound';
+        }
+        
+        flight = {
+          ...flight,
+          currentProgress: newProgress,
+          remainingTime: newRemainingTime,
+          currentPhase: newPhase,
+          flightTime: route.flightTime,
+          turnTime: avgTurnTime,
+          totalRoundTripTime: totalRoundTripTime
+        };
+      }
+      updatedFlights.push(flight);
+    }
+  }
+  updateGameState({ activeFlights: updatedFlights });
+}
+
+// Update aircraft schedule calculation to use new turn time logic
 export const assignAircraftToRoute = displayManager.createActionHandler((
   routeId: string,
   aircraftId: string,
@@ -115,14 +208,19 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   // Calculate flight time for this specific aircraft
   const flightTime = calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed);
   
+  // Calculate turn times
+  const originTurnTime = calculateTurnTime(aircraftId, route.originAirportId);
+  const destinationTurnTime = calculateTurnTime(aircraftId, route.destinationAirportId);
+  const avgTurnTime = (originTurnTime + destinationTurnTime) / 2;
+  
   // Calculate maximum possible daily flights
-  const maxDailyFlights = calculateMaxDailyFlights(flightTime);
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime, avgTurnTime);
   
   // Use provided daily flights or default to maximum
   const scheduledFlights = dailyFlights ? Math.min(dailyFlights, maxDailyFlights) : maxDailyFlights;
   
   // Calculate total hours per day
-  const totalHoursPerDay = (flightTime * 2 + 1) * scheduledFlights; // 2x flight time + 1h turnaround
+  const totalHoursPerDay = (flightTime * 2 + avgTurnTime) * scheduledFlights;
   
   // Create new schedule
   const newSchedule: AircraftSchedule = {
@@ -170,13 +268,13 @@ export const updateAircraftSchedule = displayManager.createActionHandler((
   const flightTime = calculateAirportTravelTime(route.originAirportId, route.destinationAirportId, aircraftType.speed);
   
   // Calculate maximum possible daily flights
-  const maxDailyFlights = calculateMaxDailyFlights(flightTime);
+  const maxDailyFlights = calculateMaxDailyFlights(flightTime, 0);
   
   // Ensure daily flights doesn't exceed maximum
   const scheduledFlights = Math.min(dailyFlights, maxDailyFlights);
   
   // Calculate total hours per day
-  const totalHoursPerDay = (flightTime * 2 + 1) * scheduledFlights;
+  const totalHoursPerDay = (flightTime * 2) * scheduledFlights;
   
   // Update the schedule
   const updatedRoutes = routes.map(r => {
@@ -301,8 +399,8 @@ export function getRouteStats(): RouteStats {
 function calculateOptimalPricing(
   distance: number,
   isDomestic: boolean,
-  _originCity: any,
-  _destinationCity: any
+  _originCity: unknown,
+  _destinationCity: unknown
 ): number {
   const basePrice = isDomestic ? 0.10 : 0.13; // euros per km
   let distancePrice = distance * basePrice;

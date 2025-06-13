@@ -51,6 +51,10 @@ export interface Flight {
   // Progress tracking
   currentProgress: number; // 0-100%
   remainingTime: number; // hours
+  flightTime: number; // hours - actual flight time (one way)
+  turnTime: number; // hours - turnaround time at destination
+  totalRoundTripTime: number; // hours - total time for complete round trip
+  currentPhase: 'outbound' | 'turnaround' | 'return'; // Current phase of the flight
 }
 
 export interface RouteAssignment {
