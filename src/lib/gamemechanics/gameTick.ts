@@ -2,7 +2,7 @@ import { getGameState, updateGameState } from './gameState';
 import { DAYS_PER_WEEK, WEEKS_PER_MONTH, MONTHS_PER_YEAR } from './utils';
 import { generateAllPassengers } from '../geography/passengerDemandService';
 import { processContinuousFlights } from '../routes/routeService';
-import { processWeeklyMaintenanceCosts, processMaintenanceHour, scheduleWeeklyMaintenance } from '../aircraft/fleetService';
+import { processWeeklyMaintenanceCosts, processMaintenanceHour, checkAndTriggerMaintenance } from '../aircraft/fleetMaintenance';
 
 // Game time constants
 export const HOURS_PER_DAY = 24;
@@ -35,7 +35,6 @@ export function advanceHour(): void {
       newDay = 1;
       newWeek = week + 1;
       processWeeklyMaintenanceCosts();
-      scheduleWeeklyMaintenance();
       // Check if it's time for a new month
       if (newWeek > WEEKS_PER_MONTH) {
         newWeek = 1;
@@ -68,6 +67,8 @@ export function advanceHour(): void {
   processContinuousFlights();
   // Process maintenance for all aircraft every hour
   processMaintenanceHour();
+  // Check and trigger maintenance based on flight hours every hour
+  checkAndTriggerMaintenance();
 }
 
 // Keep the old function for backward compatibility, but make it advance 24 hours

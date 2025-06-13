@@ -5,6 +5,7 @@ import { Route, Flight, RouteStats, AircraftSchedule } from './routeTypes';
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
 import { getAircraft, updateAircraftStatus } from '../aircraft/fleetService';
+import { addFlightHours } from '../aircraft/fleetMaintenance';
 import { getAircraftType } from '../aircraft/aircraftData';
 import { calculateAirportDistance, calculateAirportTravelTime } from '../geography/distanceService';
 import { getCity } from '../geography/cityData';
@@ -157,6 +158,11 @@ export function processContinuousFlights() {
         
         if (newProgress >= 100) {
           // Flight completed, start new one immediately
+          // Add flight hours to aircraft
+          if (aircraft) {
+            // Add total round trip time to flight hours
+            addFlightHours(aircraft.id, totalRoundTripTime);
+          }
           newProgress = progressIncrement; // Start next flight with 1 hour progress
           newRemainingTime = totalRoundTripTime - 1;
           newPhase = 'outbound';

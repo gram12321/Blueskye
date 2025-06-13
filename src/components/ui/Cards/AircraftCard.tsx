@@ -1,13 +1,14 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge } from './ShadCN';
-import { Progress } from './ShadCN/Progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ShadCN/Tooltip';
-import { getCity } from '../../lib/geography/cityData';
-import { getAirport } from '../../lib/geography/airportData';
-import { Aircraft } from '../../lib/aircraft/aircraftTypes';
-import { Route } from '../../lib/routes/routeTypes';
-import { AircraftType } from '../../lib/aircraft/aircraftTypes';
-import { Input } from './ShadCN/Input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge } from '../ShadCN';
+import { Progress } from '../ShadCN/Progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ShadCN/Tooltip';
+import { getCity } from '../../../lib/geography/cityData';
+import { getAirport } from '../../../lib/geography/airportData';
+import { Aircraft } from '../../../lib/aircraft/aircraftTypes';
+import { Route } from '../../../lib/routes/routeTypes';
+import { AircraftType } from '../../../lib/aircraft/aircraftTypes';
+import { Input } from '../ShadCN/Input';
 import { useState } from 'react';
+import { formatCurrency, formatNumber } from '../../../lib/gamemechanics/utils';
 
 interface AircraftCardProps {
   aircraft: Aircraft;
@@ -21,15 +22,6 @@ interface AircraftCardProps {
 export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain, onSell, onSetMaintenancePlan }: AircraftCardProps) {
   const [planInput, setPlanInput] = useState(aircraft.maintenancePlan ?? 4);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-EU', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-500';
@@ -41,6 +33,13 @@ export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain
 
   // Current value calculation
   const currentValue = Math.floor(aircraftType.cost * (aircraft.condition / 100) * 0.7);
+
+  
+  // Maintenance calculation - match the backend logic exactly
+  const maintenanceInterval = 168; // flight hours between maintenance
+  const lastMaintenanceDone = aircraft.maintenanceLastDone ?? 0;
+  const flightHoursSinceLastMaintenance = aircraft.totalFlightHours - lastMaintenanceDone;
+  const hoursUntilNextMaintenance = Math.max(0, maintenanceInterval - flightHoursSinceLastMaintenance);
 
   return (
     <Card>
@@ -59,14 +58,18 @@ export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Condition</span>
-            <span>{aircraft.condition}%</span>
+            <span>{formatNumber(aircraft.condition, { decimals: 1, smartDecimals: true })}%</span>
           </div>
           <Progress value={aircraft.condition} className="h-2" />
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-muted-foreground">Flight Hours:</span>
-            <div className="font-medium">{aircraft.totalFlightHours.toLocaleString()}</div>
+            <div className="font-medium">{formatNumber(aircraft.totalFlightHours, { decimals: 1, smartDecimals: true })}</div>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Flight time until next maintenance:</span>
+            <div className="font-medium">{formatNumber(hoursUntilNextMaintenance, { decimals: 1, smartDecimals: true })} h</div>
           </div>
           <div>
             <span className="text-muted-foreground">Passengers:</span>
@@ -109,7 +112,7 @@ export function AircraftCard({ aircraft, aircraftType, assignedRoute, onMaintain
           >
             Set
           </Button>
-          <span className="text-xs text-muted-foreground">h/week</span>
+          <span className="text-xs text-muted-foreground">h / Maintenance Session</span>
         </div>
         {aircraft.status === 'maintenance' && (
           <div className="text-xs text-yellow-700 mt-1">

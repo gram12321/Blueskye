@@ -3,7 +3,7 @@ import { getCity, getAllCities, getCityColor } from '../../../lib/geography/city
 import { getWaitingPassengersAtAirport } from '../../../lib/geography/passengerDemandService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ShadCN/Card';
 import { formatNumber } from '../../../lib/gamemechanics/utils';
-import PieChart from '../charts/PieChart';
+import PieChart from '../charts/passengerDestinationPieChart';
 import { getGameState } from '../../../lib/gamemechanics/gameState';
 
 interface AirportCardProps {

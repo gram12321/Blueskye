@@ -1,12 +1,13 @@
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
-import { getFleet, getFleetStats, purchaseAircraft, sellAircraft, performMaintenance } from '../../lib/aircraft/fleetService';
+import { getFleet, getFleetStats, purchaseAircraft, sellAircraft } from '../../lib/aircraft/fleetService';
+import { performMaintenance } from '../../lib/aircraft/fleetMaintenance';
 import { getAircraftType } from '../../lib/aircraft/aircraftData';
 import { getAllRoutes } from '../../lib/routes/routeService';
 import { ViewHeader } from '../ui/ViewHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from '../ui/ShadCN';
 import { notificationService } from '../../lib/notifications/notificationService';
 import { AircraftPurchasePanel } from '../ui/AircraftPurchasePanel';
-import { AircraftCard } from '../ui/AircraftCard';
+import { AircraftCard } from '../ui/Cards/AircraftCard';
 import { getGameState, updateGameState } from '../../lib/gamemechanics/gameState';
 
 export function FleetView() {
@@ -18,12 +19,9 @@ export function FleetView() {
   const routes = getAllRoutes();
   
   const handlePurchaseAircraft = (aircraftTypeId: string) => {
-    console.log('Attempting to purchase', aircraftTypeId);
     const success = purchaseAircraft(aircraftTypeId);
-    console.log('Purchase result:', success);
     if (!success) {
       // Could add toast notification here
-      console.log('Failed to purchase aircraft - insufficient funds or other error');
     }
   };
   
