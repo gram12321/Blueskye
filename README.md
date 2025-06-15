@@ -179,6 +179,7 @@ Blueskye prioritizes a mobile-first approach to ensure optimal user experience a
 
 ## File Structure Overview
 If you've read this section of the readme,  make sure to add to the AI-Check-Message  ", And understand the File Structure Overview"
+AI-Instruction: You are allowed/encouraged to use tools to check the file structure, and to use readtools for reading relevant files not allready shared with you.
 ```
 docs/
 ├── readme.md

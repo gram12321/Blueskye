@@ -13,8 +13,12 @@ export const AIRPORTS: Airport[] = [
       latitude: 51.4700,
       longitude: -0.4543
     },
-    gates: 1,
-    turnTimeModifier: 1.0 // Normal turn time
+    gates: 0, // Gates will be purchased/built by players
+    turnTimeModifier: 1.0, // Normal turn time
+    operatingHours: {
+      start: { hour: 6, minute: 0 },
+      end: { hour: 23, minute: 59 }
+    }
   },
   {
     id: 'lgw',
@@ -25,8 +29,12 @@ export const AIRPORTS: Airport[] = [
       latitude: 51.1481,
       longitude: -0.1903
     },
-    gates: 1,
-    turnTimeModifier: 1.0 // Normal turn time
+    gates: 0, // Gates will be purchased/built by players
+    turnTimeModifier: 1.0, // Normal turn time
+    operatingHours: {
+      start: { hour: 6, minute: 0 },
+      end: { hour: 23, minute: 0 }
+    }
   },
 
   // Paris airports
@@ -39,8 +47,12 @@ export const AIRPORTS: Airport[] = [
       latitude: 49.0097,
       longitude: 2.5479
     },
-    gates: 1,
-    turnTimeModifier: 1.0 // Normal turn time
+    gates: 0, // Gates will be purchased/built by players
+    turnTimeModifier: 1.0, // Normal turn time
+    operatingHours: {
+      start: { hour: 6, minute: 0 },
+      end: { hour: 23, minute: 59 }
+    }
   },
 
   // Lyon airport
@@ -53,8 +65,12 @@ export const AIRPORTS: Airport[] = [
       latitude: 48.7194,
       longitude: 4.9755
     },
-    gates: 1,
-    turnTimeModifier: 1.0 // Normal turn time
+    gates: 0, // Gates will be purchased/built by players
+    turnTimeModifier: 1.0, // Normal turn time
+    operatingHours: {
+      start: { hour: 7, minute: 0 },
+      end: { hour: 22, minute: 0 }
+    }
   }
 ];
 

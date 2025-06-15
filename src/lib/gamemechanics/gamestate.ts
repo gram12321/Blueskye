@@ -5,6 +5,7 @@ import { storageService } from '../localStorage/storageService';
 import { Aircraft } from '../aircraft/aircraftTypes';
 import { Route, Flight } from '../routes/routeTypes';
 import { City } from '../geography/cityTypes';
+import { GateBooking, Gate } from '../geography/gateTypes';
 
 export interface Player {
   companyName: string;
@@ -31,6 +32,10 @@ export interface GameState {
   
   // Passenger demand system (aggregate)
   waitingPassengerMap: Record<string, { count: number; lastUpdated: number }>;
+  
+  // Gate management system
+  gateBookings: GateBooking[]; // All gate bookings for this company
+  airportGateStates: Record<string, Gate[]>; // Current state of gates at each airport
 }
 
 // Initialize with default values
@@ -47,7 +52,9 @@ let gameState: GameState = {
   completedFlights: [],
   cities: [],
   totalIncome: 0,
-  waitingPassengerMap: {}
+  waitingPassengerMap: {},
+  gateBookings: [],
+  airportGateStates: {}
 };
 
 export function getGameState(): GameState {
@@ -91,7 +98,9 @@ export function resetGameState(): void {
     completedFlights: [],
     cities: [],
     totalIncome: 0,
-    waitingPassengerMap: {}
+    waitingPassengerMap: {},
+    gateBookings: [],
+    airportGateStates: {}
   };
 }
 
@@ -137,7 +146,9 @@ export function createNewPlayer(companyName: string): void {
     completedFlights: [],
     cities: [],
     totalIncome: 0,
-    waitingPassengerMap: {}
+    waitingPassengerMap: {},
+    gateBookings: [],
+    airportGateStates: {}
   });
   
   // Initialize cities

@@ -1,6 +1,3 @@
-// New route management service for Blueskye Air Management Game
-// Now supports airport-based routes with passenger demand system
-
 import { Route, Flight, RouteStats, AircraftSchedule } from './routeTypes';
 import { getGameState, updateGameState } from '../gamemechanics/gameState';
 import { displayManager } from '../gamemechanics/displayManager';
@@ -11,6 +8,7 @@ import { calculateAirportDistance, calculateAirportTravelTime } from '../geograp
 import { getCity } from '../geography/cityData';
 import { getAirport } from '../geography/airportData';
 import { getWaitingPassengersForPair, deliverPassengers } from '../geography/passengerDemandService';
+import { checkGateAvailability, bookGateSlot, cancelGateBooking, getGateStats } from '../geography/gateService';
 import { HOURS_PER_DAY } from '../gamemechanics/gameTick';
 import { addMoney } from '../finance/financeService';
 import { calculateAbsoluteDays } from '../gamemechanics/utils';
@@ -105,6 +103,11 @@ export const createRoute = displayManager.createActionHandler((
     assignedAircraftIds: [],
     aircraftSchedules: [],
     pricePerPassenger: pricing,
+    // Gate management - initially empty, gates will be booked when aircraft assigned
+    originGateBookingIds: [],
+    destinationGateBookingIds: [],
+    totalGateCosts: 0,
+    hasRequiredGates: false,
     totalFlights: 0,
     totalRevenue: 0,
     totalProfit: 0,
@@ -518,6 +521,32 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   // Calculate total hours per day
   const totalHoursPerDay = (originTurnTime + flightTime + destinationTurnTime + flightTime) * scheduledFlights;
   
+  // Check gate availability and book gates for the route
+  const originCity = getCity(getAirport(route.originAirportId)?.cityId || '');
+  const destinationCity = getCity(getAirport(route.destinationAirportId)?.cityId || '');
+  const isDomestic = originCity?.country === destinationCity?.country;
+  
+  // For now, we'll create a simplified gate booking system
+  // This will be enhanced when the full gate management UI is implemented
+  
+  // Check if airports have any gates available (simplified check)
+  const currentGameState = getGameState();
+  const originGates = currentGameState.airportGateStates?.[route.originAirportId] || [];
+  const destinationGates = currentGameState.airportGateStates?.[route.destinationAirportId] || [];
+  
+  if (originGates.length === 0 || destinationGates.length === 0) {
+    notificationService.info(
+      `Note: Gates need to be purchased at airports before full gate management is available. Route will operate with basic airport access.`,
+      { category: 'Routes' }
+    );
+  }
+  
+  // For now, we'll proceed without strict gate booking requirements
+  // This allows the system to work while gate management is being developed
+  let totalGateCosts = 0;
+  const originGateBookingIds: string[] = [];
+  const destinationGateBookingIds: string[] = [];
+  
   // Create new schedule
   const newSchedule: AircraftSchedule = {
     aircraftId,
@@ -525,17 +554,41 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
     totalHoursPerDay
   };
   
-  // Update route with assigned aircraft and schedule
+  // Update route with assigned aircraft, schedule, and gate bookings
   const updatedRoutes = [...routes];
   updatedRoutes[routeIndex] = {
     ...route,
     assignedAircraftIds: [...route.assignedAircraftIds, aircraftId],
     aircraftSchedules: [...route.aircraftSchedules, newSchedule],
+    originGateBookingIds: [...route.originGateBookingIds, ...originGateBookingIds],
+    destinationGateBookingIds: [...route.destinationGateBookingIds, ...destinationGateBookingIds],
+    totalGateCosts: route.totalGateCosts + totalGateCosts,
+    hasRequiredGates: originGates.length > 0 && destinationGates.length > 0,
     isActive: true
   };
   
   updateGameState({ routes: updatedRoutes });
   updateAircraftStatus(aircraftId, 'in-flight');
+  
+  // Notify user of successful assignment
+  if (totalGateCosts > 0) {
+    const formattedCost = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(totalGateCosts);
+    
+    notificationService.success(
+      `Aircraft assigned to route with gate bookings (Daily gate cost: ${formattedCost})`,
+      { category: 'Routes' }
+    );
+  } else {
+    notificationService.success(
+      `Aircraft assigned to route successfully`,
+      { category: 'Routes' }
+    );
+  }
   
   return true;
 });
@@ -609,12 +662,34 @@ export const removeAircraftFromRoute = displayManager.createActionHandler((
   
   const route = routes[routeIndex];
   
-  // Remove aircraft from route
+  // Cancel any gate bookings for this aircraft on this route
+  const gateBookings = gameState.gateBookings || [];
+  const aircraftBookings = gateBookings.filter(
+    booking => booking.routeId === routeId && booking.aircraftId === aircraftId && booking.isActive
+  );
+  
+  for (const booking of aircraftBookings) {
+    cancelGateBooking(booking.id);
+  }
+  
+  // Remove aircraft from route and update gate booking IDs
+  const remainingAircraftIds = route.assignedAircraftIds.filter(id => id !== aircraftId);
+  const remainingSchedules = route.aircraftSchedules.filter(schedule => schedule.aircraftId !== aircraftId);
+  
+  // Recalculate gate costs for remaining aircraft
+  const remainingBookings = gateBookings.filter(
+    booking => booking.routeId === routeId && remainingAircraftIds.includes(booking.aircraftId) && booking.isActive
+  );
+  const newTotalGateCosts = remainingBookings.reduce((sum, booking) => sum + booking.totalCost, 0);
+  
   const updatedRoutes = [...routes];
   updatedRoutes[routeIndex] = {
     ...route,
-    assignedAircraftIds: route.assignedAircraftIds.filter(id => id !== aircraftId),
-    isActive: route.assignedAircraftIds.filter(id => id !== aircraftId).length > 0
+    assignedAircraftIds: remainingAircraftIds,
+    aircraftSchedules: remainingSchedules,
+    totalGateCosts: newTotalGateCosts,
+    hasRequiredGates: remainingAircraftIds.length === 0 ? false : route.hasRequiredGates,
+    isActive: remainingAircraftIds.length > 0
   };
   
   updateGameState({ routes: updatedRoutes });

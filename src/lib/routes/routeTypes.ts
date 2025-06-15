@@ -21,6 +21,12 @@ export interface Route {
   aircraftSchedules: AircraftSchedule[]; // Detailed scheduling information
   pricePerPassenger: number; // euros
   
+  // Gate management
+  originGateBookingIds: string[]; // Gate booking IDs at origin airport
+  destinationGateBookingIds: string[]; // Gate booking IDs at destination airport
+  totalGateCosts: number; // Total daily gate rental costs
+  hasRequiredGates: boolean; // Whether all required gates are booked
+  
   // Statistics
   totalFlights: number;
   totalRevenue: number;
@@ -56,6 +62,10 @@ export interface Flight {
   destinationTurnTime: number; // hours - turnaround time at destination airport
   totalRoundTripTime: number; // hours - total time for complete round trip
   currentPhase: 'origin-turn' | 'outbound' | 'destination-turn' | 'return'; // Current phase of the flight
+  
+  // Gate information
+  originGateId?: string; // Gate used at origin airport
+  destinationGateId?: string; // Gate used at destination airport
 }
 
 export interface RouteAssignment {
@@ -73,4 +83,4 @@ export interface RouteStats {
   totalRevenue: number;
   totalProfit: number;
   averageLoadFactor: number; // percentage of seats filled
-} 
+}

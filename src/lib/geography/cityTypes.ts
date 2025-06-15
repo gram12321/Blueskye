@@ -1,5 +1,7 @@
 // City and geography type definitions for Blueskye Air Management Game
 
+import { TimeSlot } from './gateTypes';
+
 export interface Coordinates {
   latitude: number;
   longitude: number;
@@ -22,6 +24,12 @@ export interface Airport {
   coordinates: Coordinates;
   gates: number; // Number of gates - affects capacity and turn time
   turnTimeModifier: number; // Multiplier for aircraft turn times (1.0 = normal, >1.0 = slower)
+  
+  // Gate system properties
+  operatingHours: {
+    start: TimeSlot;
+    end: TimeSlot;
+  };
 }
 
 // Individual passenger with destination preference

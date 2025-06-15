@@ -24,14 +24,14 @@ interface NavigationItem {
 }
 
 // Simplified navigation items for air management game
-const navigation: NavigationItem[] = [
-  { name: 'Company', view: 'Company', icon: uiEmojis.company },
-  { name: 'Fleet', view: 'Fleet', icon: uiEmojis.aircraft },
-  { name: 'Routes', view: 'Routes', icon: uiEmojis.route },
-  { name: 'Geography', view: 'Geography', icon: uiEmojis.map },
-  { name: 'Passengers', view: 'Passengers', icon: '✈️' },
-  { name: 'Finance', view: 'Finance', icon: uiEmojis.finance },
-  { name: 'Tradepedia', view: 'Tradepedia', icon: uiEmojis.book },
+const mainNavigation: NavigationItem[] = [
+  { name: 'Company', view: 'Company', icon: '🏢' },
+  { name: 'Finance', view: 'Finance', icon: '💰' },
+  { name: 'Fleet', view: 'Fleet', icon: '✈️' },
+  { name: 'Routes', view: 'Routes', icon: '🛫' },
+  { name: 'Geography', view: 'Geography', icon: '🌍' },
+  { name: 'Passengers', view: 'Passengers', icon: '👥' },
+  { name: 'Gates', view: 'Gates', icon: '🚪' }
 ];
 
 export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
@@ -80,7 +80,7 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
             
             <NavigationMenu className="hidden lg:flex">
               <NavigationMenuList className="flex space-x-1">
-                {navigation.map((item) => (
+                {mainNavigation.map((item) => (
                   <NavigationMenuItem key={item.name}>
                     <Button
                       id={`nav-${item.view.toLowerCase()}`}
@@ -235,7 +235,7 @@ export function TopBar({ currentView, setView, onLogout }: TopBarProps) {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t border-[hsl(var(--primary))]/20">
             <div className="flex flex-col space-y-1 mt-4">
-              {navigation.map((item) => (
+              {mainNavigation.map((item) => (
                 <Button
                   key={item.name}
                   variant="ghost"

@@ -12,11 +12,12 @@ import { FleetView } from './components/views/FleetView'
 import { RouteView } from './components/views/RouteView'
 import { GeographyView } from './components/views/GeographyView'
 import { PassengerDemandView } from './components/views/PassengerDemandView'
+import { GateManagementView } from './components/views/GateManagementView'
 import { uiEmojis } from './components/ui/resources/emojiMap'
 import { useDisplayUpdate } from './lib/gamemechanics/displayManager'
 import { Toaster } from './components/ui/ShadCN/Toaster'
 
-export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin' | 'Fleet' | 'Routes' | 'Geography' | 'Passengers'
+export type View = 'Login' | 'Company' | 'Finance' | 'Tradepedia' | 'Profile' | 'Settings' | 'Admin' | 'Fleet' | 'Routes' | 'Geography' | 'Passengers' | 'Gates'
 
 function App() {
   const [view, setView] = useState<View>('Login')
@@ -110,6 +111,7 @@ function App() {
           {view === 'Routes' && <RouteView />}
           {view === 'Geography' && <GeographyView />}
           {view === 'Passengers' && <PassengerDemandView />}
+          {view === 'Gates' && <GateManagementView />}
         </main>
       </div>
     )

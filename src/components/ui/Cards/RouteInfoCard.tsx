@@ -7,7 +7,10 @@ import { getAircraft } from '../../../lib/aircraft/fleetService';
 import { getAircraftType } from '../../../lib/aircraft/aircraftData';
 import { getAirport } from '../../../lib/geography/airportData';
 import { getCity } from '../../../lib/geography/cityData';
+import { getGateStats } from '../../../lib/geography/gateService';
+import { getGameState } from '../../../lib/gamemechanics/gameState';
 import RouteMap from '../maps/RouteMap';
+import { Building2, AlertTriangle } from 'lucide-react';
 
 interface RouteInfo {
   distance: number;
@@ -33,6 +36,26 @@ export function RouteInfoCard({ routeInfo }: RouteInfoCardProps) {
   
   // Calculate demand and seats on market (outbound only - return demand depends on destination airport)
   const outboundDemand = getWaitingPassengersForPair(routeInfo.originAirportId, routeInfo.destinationCityId);
+  
+  // Get gate information for both airports
+  const gameState = getGameState();
+  const originGates = gameState.airportGateStates?.[routeInfo.originAirportId] || [];
+  const originGateStats = getGateStats(routeInfo.originAirportId);
+  
+  // Find destination airport for gate info
+  const destinationAirport = destinationCity ? 
+    getAirport(destinationCity.id) || // Try to find airport with same ID as city
+    Object.values(gameState.airportGateStates || {}).find(gates => 
+      gates.some(gate => getAirport(gate.airportId)?.cityId === destinationCity.id)
+    )?.[0] ? getAirport(Object.values(gameState.airportGateStates || {}).find(gates => 
+      gates.some(gate => getAirport(gate.airportId)?.cityId === destinationCity.id)
+    )?.[0]?.airportId || '') : null
+    : null;
+  
+  const destinationGates = destinationAirport ? 
+    gameState.airportGateStates?.[destinationAirport.id] || [] : [];
+  const destinationGateStats = destinationAirport ? 
+    getGateStats(destinationAirport.id) : null;
   
   let seats = 0;
   if (routeInfo.assignedAircraftIds && routeInfo.flightTime) {
@@ -113,6 +136,69 @@ export function RouteInfoCard({ routeInfo }: RouteInfoCardProps) {
             </div>
           </div>
         )}
+        
+        {/* Gate Information */}
+        <div>
+          <h4 className="font-medium mb-2 flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Gate Availability
+          </h4>
+          <div className="space-y-3">
+            {/* Origin Airport Gates */}
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">
+                  {originAirport?.name} ({originAirport?.code})
+                </span>
+                <Badge variant={originGates.length > 0 ? "default" : "secondary"}>
+                  {originGates.length} gates
+                </Badge>
+              </div>
+              {originGates.length > 0 ? (
+                <div className="text-xs text-gray-600">
+                  {originGateStats.utilizationRate.toFixed(1)}% utilization • €{originGateStats.totalDailyRevenue.toLocaleString()} daily revenue
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-amber-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  No gates owned - routes will use basic airport access
+                </div>
+              )}
+            </div>
+            
+            {/* Destination Airport Gates */}
+            {destinationAirport && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    {destinationAirport.name} ({destinationAirport.code})
+                  </span>
+                  <Badge variant={destinationGates.length > 0 ? "default" : "secondary"}>
+                    {destinationGates.length} gates
+                  </Badge>
+                </div>
+                {destinationGates.length > 0 && destinationGateStats ? (
+                  <div className="text-xs text-gray-600">
+                    {destinationGateStats.utilizationRate.toFixed(1)}% utilization • €{destinationGateStats.totalDailyRevenue.toLocaleString()} daily revenue
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-xs text-amber-600">
+                    <AlertTriangle className="h-3 w-3" />
+                    No gates owned - routes will use basic airport access
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {!destinationAirport && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm text-gray-600">
+                  Destination airport information will be available after route creation
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
