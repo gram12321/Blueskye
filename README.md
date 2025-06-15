@@ -12,7 +12,7 @@ Additional instructions for automated coding tools can be found in **.cursor/ai-
 
 - Read @readme.md and Ai-Rules.mdc
 - After major updates ALWAYS ask to update @readme.md and Ai-Rules.mdc
-- Start every response with "Blueskye: Have read the Readme.md", and if you have, start with "Blueskye: Have read the Readme.md and Ai-Rules.mdc"
+- AI-Check message: Start every response with "Blueskye: Have read the Readme.md"
 
 ## Technical Stack
 

@@ -78,7 +78,7 @@ export function RouteView() {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">{routeStats.averageLoadFactor.toFixed(1)}%</div>
-            <div className="text-sm text-muted-foreground">Load Factor</div>
+            <div className="text-sm text-muted-foreground">Load Factor (7d)</div>
           </div>
         </CardContent>
       </Card>

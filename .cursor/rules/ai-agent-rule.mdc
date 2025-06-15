@@ -6,7 +6,7 @@ alwaysApply: true
 
 ## AI Code Generation Principles for Air Management Game
 ### 💡 ALWAYS, IN EVERY RESPONSE
-- Read @README.md.
+- Read @README.md. And make sure to add to the AI-Check-Message  "[, also read the rules]"
 - Do not use `npm run build` or `npm run dev` unless specifically told to. The user already has a dev server running.
 - Verify the existence of files/functions before importing them.
 - Use named imports; avoid default exports.

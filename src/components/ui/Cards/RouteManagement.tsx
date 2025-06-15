@@ -9,7 +9,7 @@ import { BarChart } from '../charts/passengerDemandBarChart';
 import { getAircraftType } from '../../../lib/aircraft/aircraftData';
 import { getCity } from '../../../lib/geography/cityData';
 import { getAirport } from '../../../lib/geography/airportData';
-import { getBidirectionalRoutePassengerDemand, getAircraftSchedule } from '../../../lib/routes/routeService';
+import { getBidirectionalRoutePassengerDemand, getAircraftSchedule, getRouteLoadFactor, getAircraftRouteLoadFactor } from '../../../lib/routes/routeService';
 import { formatNumber } from '../../../lib/gamemechanics/utils';
 
 interface RouteManagementProps {
@@ -57,6 +57,9 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                 fleet.find((aircraft: any) => aircraft.id === id)
               ).filter(Boolean);
               const activeFlights = gameState.activeFlights.filter((flight: any) => flight.routeId === route.id);
+              
+              // Calculate route load factor for last week
+              const routeLoadFactor = getRouteLoadFactor(route.id, 7);
 
               // Bidirectional demand and seats for BarChart
               const demandData = getBidirectionalRoutePassengerDemand(route.id);
@@ -110,8 +113,8 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                         <div className="font-medium text-green-600">{formatCurrency(route.totalRevenue)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Load Factor:</span>
-                        <div className="font-medium">{route.averageLoadFactor.toFixed(1)}%</div>
+                        <span className="text-muted-foreground">Load Factor (7d):</span>
+                        <div className="font-medium">{routeLoadFactor.toFixed(1)}%</div>
                       </div>
                     </div>
                     {/* Bidirectional Demand vs Seats BarChart */}
@@ -181,13 +184,14 @@ export const RouteManagement: React.FC<RouteManagementProps> = ({
                             if (!aircraft) return null;
                             const aircraftType = getAircraftType(aircraft.aircraftTypeId);
                             const schedule = getAircraftSchedule(route.id, aircraft.id);
+                            const aircraftLoadFactor = getAircraftRouteLoadFactor(route.id, aircraft.id, 7);
                             return (
                               <div key={aircraft.id} className="flex flex-col gap-2 bg-muted/50 rounded-lg p-3">
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">
                                     <div className="font-medium">{aircraftType?.name}</div>
                                     <div className="text-sm text-muted-foreground">
-                                      ID: {aircraft.id.slice(-8)} • Condition: {aircraft.condition}%
+                                      ID: {aircraft.id.slice(-8)} • Condition: {aircraft.condition}% • Load Factor (7d): {aircraftLoadFactor.toFixed(1)}%
                                     </div>
                                   </div>
                                   <Button

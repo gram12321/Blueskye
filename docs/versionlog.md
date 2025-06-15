@@ -1,3 +1,52 @@
+## [0.013.1] - 2025-06-13 - Finance Transaction Consolidation Bugfix
+
+### Bugfix & Improvements
+- **Issue Addressed**: Resolved an issue introduced in v0.013 where the Finance View became cluttered with an excessive number of individual passenger pickup transactions, making financial analysis difficult and overwhelming.
+- **Consolidated Revenue Reporting**: Implemented a system to consolidate all passenger revenue for a given route into a single, comprehensive daily summary transaction. This replaces numerous micro-transactions with one clear entry per route per day.
+- **Improved Finance View Readability**: The Finance View now displays aggregated daily revenue for each route, providing a cleaner and more meaningful overview of financial performance without overwhelming detail.
+- **Smart Revenue Tracking**: The system now tracks revenue throughout the day and processes summaries at the end of each game day, ensuring accurate financial records without overwhelming detail.
+
+### Technical Implementation
+- Introduced `DailyRouteRevenue` interface and `trackDailyRevenue()` function to accumulate daily statistics per route.
+- Created `processDailyRevenueSummaries()` function that runs at the end of each game day to create consolidated transactions.
+- Integrated daily summary processing into the game tick system (`gameTick.ts`).
+- Revenue is now collected once per day per route as a summary transaction, instead of generating a transaction for every individual passenger pickup, dramatically reducing transaction volume.
+
+### User Experience Improvements
+- Finance View transactions are now meaningful and readable instead of being cluttered with repetitive entries.
+- Daily summaries provide better insights into route performance and revenue patterns.
+- Transaction history remains clean and useful for financial analysis.
+
+## [0.014] - 2025-06-13 - Load Factor Tracking & In-Game Time Integration
+
+### Major Features & Improvements
+- **Comprehensive Load Factor System**: Implemented robust load factor calculations based on actual passenger vs. capacity ratios from completed flights. This includes route-level, aircraft-level, and system-wide load factors, displayed for the "last 7 in-game days". Load factors now show meaningful percentages based on actual performance.
+- **In-Game Time Integration**: Crucially, all load factor calculations, historical flight tracking, and data cleanup now utilize the game's internal time system (`hour`, `day`, `week`, `month`, `year`) via the `calculateAbsoluteDays()` utility function. This ensures load factors are calculated based on in-game progression rather than real-world dates, aligning with the `gameTick.ts` system.
+- **Flight History & Cleanup**: Enhanced completed flight storage to include game time fields (`completedGameDay`, `completedGameWeek`, `completedGameMonth`, `completedGameYear`), enabling accurate historical analysis. Automatic cleanup of old completed flights (keeping 30 in-game days) prevents memory bloat while maintaining sufficient data.
+
+### UI Improvements
+- Updated RouteManagement and RouteView components to display meaningful "Load Factor (7d)" percentages for both routes and individual aircraft assignments.
+
+### Technical Implementation
+- Introduced `getRouteLoadFactor()`, `getAircraftRouteLoadFactor()`, `calculateRecentLoadFactor()`, and `cleanupOldCompletedFlights()` functions.
+- Flight completion records now include game time attributes for precise historical tracking.
+- All time-based filtering and cleanup logic consistently use `calculateAbsoluteDays()` for in-game time comparisons.
+
+## [0.013]  - 2025-06-13 - Revenue Collection System Implementation
+
+### Major Features & Changes
+- **Revenue Collection at Passenger Pickup**: Implemented automatic revenue collection when aircraft pick up passengers at airports. Players now earn money immediately when passengers board their aircraft, based on the route's ticket price and number of passengers.
+- **Distance-Based Static Ticket Pricing**: Replaced the old pricing algorithm with a simplified static calculation based on distance and domestic/international classification. Domestic flights cost €0.12/km and international flights €0.15/km, with distance-based adjustments and minimum prices.
+- **Flight Revenue Tracking**: Enhanced flight objects to properly track revenue and profit. Each flight now records total revenue from both outbound and return passenger pickups.
+- **Route Statistics Integration**: Revenue collection automatically updates route statistics (totalRevenue, totalFlights) and integrates with the centralized finance system through the `addMoney()` function.
+- **Financial Transaction Logging**: All passenger revenue is logged as "Flight Revenue" transactions with detailed descriptions showing passenger count and route information.
+
+### Technical Improvements
+- Refactored passenger pickup logic in `processContinuousFlights()` to include revenue calculation and finance integration.
+- Added `calculateTicketPrice()` function for consistent distance-based pricing across the game.
+- Enhanced `pickupPassengersAndCollectRevenue()` function to handle both passenger logistics and financial transactions.
+- All revenue collection happens during the "origin-turn" and "destination-turn" phases of flights, ensuring realistic timing.
+
 ## [0.012]  - 2025-06-13 - Passenger demand system & Route Management UI overhaul
 
 ### Major Features & Changes

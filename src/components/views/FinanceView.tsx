@@ -241,6 +241,12 @@ const CashFlow = () => {
     return calculateCashFlow(filterCriteria as any);
   }, [timeFilter, gameState]);
   
+  // Helper function to calculate absolute hours since game start
+  const calculateAbsoluteHours = (year: number, month: number, week: number, day: number, hour: number): number => {
+    const absoluteDays = calculateAbsoluteDays(year, month, week, day);
+    return absoluteDays * 24 + hour;
+  };
+
   // Group transactions by date for display
   const groupedTransactions = useMemo(() => {
     const grouped: { [key: string]: Transaction[] } = {};
@@ -302,12 +308,6 @@ const CashFlow = () => {
     const { hour, day, week, month, year } = parseDateKey(dateKey);
     const monthName = MONTH_NAMES[month - 1] || 'Unknown';
     return `${hour.toString().padStart(2, '0')}:00 - Day ${day}, Week ${week}, ${monthName} ${year}`;
-  };
-
-  // Helper function to calculate absolute hours since game start
-  const calculateAbsoluteHours = (year: number, month: number, week: number, day: number, hour: number): number => {
-    const absoluteDays = calculateAbsoluteDays(year, month, week, day);
-    return absoluteDays * 24 + hour;
   };
   
   // Calculate category summaries

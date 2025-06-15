@@ -12,10 +12,56 @@ import { getCity } from '../geography/cityData';
 import { getAirport } from '../geography/airportData';
 import { getWaitingPassengersForPair, deliverPassengers } from '../geography/passengerDemandService';
 import { HOURS_PER_DAY } from '../gamemechanics/gameTick';
+import { addMoney } from '../finance/financeService';
+import { calculateAbsoluteDays } from '../gamemechanics/utils';
+import { notificationService } from '../notifications/notificationService';
+
+// Daily revenue tracking for summary transactions
+interface DailyRouteRevenue {
+  routeId: string;
+  originAirportId: string;
+  destinationCityId: string; // This is the passenger destination city, not airport
+  aircraftIds: Set<string>;
+  totalPassengers: number;
+  totalRevenue: number;
+  flightCount: number;
+}
 
 // Generate unique IDs
 function generateRouteId(): string {
   return 'route-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+}
+
+// Calculate static ticket price based on distance
+function calculateTicketPrice(distance: number, originAirportId: string, destinationAirportId: string): number {
+  const originAirport = getAirport(originAirportId);
+  const destinationAirport = getAirport(destinationAirportId);
+  
+  if (!originAirport || !destinationAirport) return 100; // Default price
+  
+  const originCity = getCity(originAirport.cityId);
+  const destinationCity = getCity(destinationAirport.cityId);
+  
+  if (!originCity || !destinationCity) return 100; // Default price
+  
+  const isDomestic = originCity.country === destinationCity.country;
+  
+  // Static pricing based on distance and domestic/international
+  const basePrice = isDomestic ? 0.12 : 0.15; // euros per km
+  let distancePrice = distance * basePrice;
+  
+  // Distance-based adjustments
+  if (distance < 500) {
+    distancePrice *= 1.2; // Short flights are more expensive per km
+  } else if (distance > 3000) {
+    distancePrice *= 0.9; // Long flights get discount per km
+  }
+  
+  const baseFee = isDomestic ? 40 : 65; // Base airport fees
+  const finalPrice = distancePrice + baseFee;
+  const minimumPrice = isDomestic ? 55 : 85;
+  
+  return Math.max(minimumPrice, Math.round(finalPrice));
 }
 
 // Create a new permanent route between airports
@@ -40,15 +86,9 @@ export const createRoute = displayManager.createActionHandler((
   }
   
   const distance = calculateAirportDistance(originAirportId, destinationAirportId);
-  const isDomestic = originCity.country === destinationCity.country;
   
-  // Calculate optimal pricing if not provided
-  const pricing = pricePerPassenger || calculateOptimalPricing(
-    distance,
-    isDomestic,
-    originCity,
-    destinationCity
-  );
+  // Calculate pricing if not provided
+  const pricing = pricePerPassenger || calculateTicketPrice(distance, originAirportId, destinationAirportId);
   
   // Use aircraft speed for flight time calculation (will be recalculated when aircraft assigned)
   const averageSpeed = 800; // km/h - average commercial aircraft speed
@@ -159,6 +199,79 @@ function getPassengersForDirection(route: Route, currentPhase: string): { origin
   return null; // Don't pick up passengers during flight phases
 }
 
+// Process passenger pickup and revenue collection
+function pickupPassengersAndCollectRevenue(
+  route: Route, 
+  passengerInfo: { originAirportId: string; destinationCityId: string }, 
+  maxCapacity: number,
+  flight?: Flight
+): { passengers: number; revenue: number } {
+  // Pick up passengers
+  const actualPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, maxCapacity);
+  
+  // Calculate revenue - use route's price per passenger
+  const revenue = actualPassengers * route.pricePerPassenger;
+  
+  // Update route statistics
+  const gameState = getGameState();
+  const routes = gameState.routes || [];
+  const routeIndex = routes.findIndex(r => r.id === route.id);
+  
+  if (routeIndex !== -1) {
+    const updatedRoutes = [...routes];
+    updatedRoutes[routeIndex] = {
+      ...route,
+      totalRevenue: route.totalRevenue + revenue,
+      totalFlights: route.totalFlights + (actualPassengers > 0 ? 1 : 0)
+    };
+    updateGameState({ routes: updatedRoutes });
+  }
+  
+  // Money will be added in daily summary, not immediately
+  
+  // Track daily revenue summary
+  if (actualPassengers > 0 && flight) {
+    trackDailyRevenue(route, passengerInfo, flight.aircraftId, actualPassengers, revenue);
+  }
+  
+  return { passengers: actualPassengers, revenue };
+}
+
+// Track daily revenue for summary transactions
+function trackDailyRevenue(
+  route: Route,
+  passengerInfo: { originAirportId: string; destinationCityId: string },
+  aircraftId: string,
+  passengers: number,
+  revenue: number
+): void {
+  const gameState = getGameState();
+  const dailyRevenue = (gameState as any).dailyRouteRevenue || {};
+  
+  // Create a key for this route direction
+  const routeKey = `${route.id}-${passengerInfo.originAirportId}-${passengerInfo.destinationCityId}`;
+  
+  if (!dailyRevenue[routeKey]) {
+    dailyRevenue[routeKey] = {
+      routeId: route.id,
+      originAirportId: passengerInfo.originAirportId,
+      destinationCityId: passengerInfo.destinationCityId,
+      aircraftIds: new Set<string>(),
+      totalPassengers: 0,
+      totalRevenue: 0,
+      flightCount: 0
+    };
+  }
+  
+  const summary = dailyRevenue[routeKey];
+  summary.aircraftIds.add(aircraftId);
+  summary.totalPassengers += passengers;
+  summary.totalRevenue += revenue;
+  summary.flightCount += 1;
+  
+  updateGameState({ dailyRouteRevenue: dailyRevenue } as any);
+}
+
 // Export the flight processing function for use in gameTick
 export function processContinuousFlights() {
   const gameState = getGameState();
@@ -184,9 +297,14 @@ export function processContinuousFlights() {
         // New flight - pick up outbound passengers (origin->destination)
         const passengerInfo = getPassengersForDirection(route, 'origin-turn');
         let actualPassengers = 0;
+        let flightRevenue = 0;
         if (passengerInfo) {
           const maxCapacity = aircraftType.maxPassengers;
-          actualPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, maxCapacity);
+          // Create a temporary flight object for tracking
+          const tempFlight = { aircraftId: schedule.aircraftId } as Flight;
+          const result = pickupPassengersAndCollectRevenue(route, passengerInfo, maxCapacity, tempFlight);
+          actualPassengers = result.passengers;
+          flightRevenue = result.revenue;
         }
         
         flight = {
@@ -199,9 +317,9 @@ export function processContinuousFlights() {
           estimatedArrival: new Date(Date.now() + totalRoundTripTime * 60 * 60 * 1000),
           passengers: actualPassengers,
           maxPassengers: aircraftType.maxPassengers,
-          totalRevenue: 0,
+          totalRevenue: flightRevenue,
           operationalCosts: 0,
-          profit: 0,
+          profit: flightRevenue,
           currentProgress: 0,
           remainingTime: totalRoundTripTime,
           flightTime: route.flightTime,
@@ -241,8 +359,10 @@ export function processContinuousFlights() {
           const passengerInfo = getPassengersForDirection(route, 'destination-turn');
           if (passengerInfo) {
             const maxCapacity = aircraftType.maxPassengers;
-            const returnPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, maxCapacity);
-            flight.passengers = returnPassengers; // Replace with return passengers
+            const result = pickupPassengersAndCollectRevenue(route, passengerInfo, maxCapacity, flight);
+            flight.passengers = result.passengers; // Replace with return passengers
+            flight.totalRevenue += result.revenue; // Add return revenue to flight
+            flight.profit = flight.totalRevenue - flight.operationalCosts; // Update profit
           }
         }
         
@@ -254,11 +374,37 @@ export function processContinuousFlights() {
             addFlightHours(aircraft.id, totalRoundTripTime);
           }
           
+          // Store completed flight for load factor calculation
+          const gameStateForCompletion = getGameState();
+          const completedFlight: Flight = {
+            ...flight,
+            status: 'completed',
+            actualArrival: new Date(), // Keep for compatibility, but we'll use game time for calculations
+            currentProgress: 100,
+            remainingTime: 0
+          };
+          
+          // Add game time tracking as additional properties
+          (completedFlight as any).completedGameDay = gameStateForCompletion.day;
+          (completedFlight as any).completedGameWeek = gameStateForCompletion.week;
+          (completedFlight as any).completedGameMonth = gameStateForCompletion.month;
+          (completedFlight as any).completedGameYear = gameStateForCompletion.year;
+          
+          // Add to completed flights history
+          const currentState = getGameState();
+          const completedFlights = currentState.completedFlights || [];
+          updateGameState({ 
+            completedFlights: [...completedFlights, completedFlight]
+          });
+          
           // Pick up new outbound passengers for the next flight cycle
           const passengerInfo = getPassengersForDirection(route, 'origin-turn');
           let newPassengers = 0;
+          let newRevenue = 0;
           if (passengerInfo) {
-            newPassengers = deliverPassengers(passengerInfo.originAirportId, passengerInfo.destinationCityId, aircraftType.maxPassengers);
+            const result = pickupPassengersAndCollectRevenue(route, passengerInfo, aircraftType.maxPassengers, flight);
+            newPassengers = result.passengers;
+            newRevenue = result.revenue;
           }
           
           newProgress = progressIncrement; // Start next flight with 1 hour progress
@@ -269,6 +415,8 @@ export function processContinuousFlights() {
           flight = {
             ...flight,
             passengers: newPassengers,
+            totalRevenue: newRevenue, // Reset revenue for new flight cycle
+            profit: newRevenue, // Reset profit for new flight cycle
             currentProgress: newProgress,
             remainingTime: newRemainingTime,
             currentPhase: newPhase
@@ -290,6 +438,41 @@ export function processContinuousFlights() {
     }
   }
   updateGameState({ activeFlights: updatedFlights });
+  
+  // Clean up old completed flights (keep only last 30 days)
+  cleanupOldCompletedFlights();
+}
+
+// Clean up completed flights older than specified days to prevent memory bloat
+function cleanupOldCompletedFlights(daysToKeep: number = 30): void {
+  const gameState = getGameState();
+  const completedFlights = gameState.completedFlights || [];
+  
+  if (completedFlights.length === 0) return;
+  
+  const currentAbsoluteDays = calculateAbsoluteDays(gameState.year, gameState.month, gameState.week, gameState.day);
+  const cutoffDays = currentAbsoluteDays - daysToKeep;
+  
+  const recentFlights = completedFlights.filter(flight => {
+    // Check if flight has game time data
+    const flightData = flight as any;
+    if (flightData.completedGameYear && flightData.completedGameMonth && 
+        flightData.completedGameWeek && flightData.completedGameDay) {
+      const flightAbsoluteDays = calculateAbsoluteDays(
+        flightData.completedGameYear,
+        flightData.completedGameMonth,
+        flightData.completedGameWeek,
+        flightData.completedGameDay
+      );
+      return flightAbsoluteDays >= cutoffDays;
+    }
+    return true; // Keep flights without game time data for now
+  });
+  
+  // Only update if we actually removed some flights
+  if (recentFlights.length < completedFlights.length) {
+    updateGameState({ completedFlights: recentFlights });
+  }
 }
 
 // Update aircraft schedule calculation to use new turn time logic
@@ -467,11 +650,60 @@ export function getCurrentFlightForAircraft(aircraftId: string): Flight | undefi
   return activeFlights.find(flight => flight.aircraftId === aircraftId);
 }
 
+// Calculate load factor for recent flights (last week) using in-game time
+function calculateRecentLoadFactor(flights: Flight[], daysBack: number = 7): number {
+  const gameState = getGameState();
+  const currentAbsoluteDays = calculateAbsoluteDays(gameState.year, gameState.month, gameState.week, gameState.day);
+  const cutoffDays = currentAbsoluteDays - daysBack;
+  
+  const recentFlights = flights.filter(flight => {
+    // Check if flight has game time data
+    const flightData = flight as any;
+    if (flightData.completedGameYear && flightData.completedGameMonth && 
+        flightData.completedGameWeek && flightData.completedGameDay) {
+      const flightAbsoluteDays = calculateAbsoluteDays(
+        flightData.completedGameYear,
+        flightData.completedGameMonth,
+        flightData.completedGameWeek,
+        flightData.completedGameDay
+      );
+      return flightAbsoluteDays >= cutoffDays;
+    }
+    return false; // Exclude flights without game time data
+  });
+  
+  if (recentFlights.length === 0) return 0;
+  
+  const totalCapacity = recentFlights.reduce((sum, flight) => sum + flight.maxPassengers, 0);
+  const totalPassengers = recentFlights.reduce((sum, flight) => sum + flight.passengers, 0);
+  
+  return totalCapacity > 0 ? (totalPassengers / totalCapacity) * 100 : 0;
+}
+
+// Get load factor for a specific route (last week)
+export function getRouteLoadFactor(routeId: string, daysBack: number = 7): number {
+  const gameState = getGameState();
+  const completedFlights = gameState.completedFlights || [];
+  const routeFlights = completedFlights.filter(flight => flight.routeId === routeId);
+  
+  return calculateRecentLoadFactor(routeFlights, daysBack);
+}
+
+// Get load factor for a specific aircraft on a route (last week)
+export function getAircraftRouteLoadFactor(routeId: string, aircraftId: string, daysBack: number = 7): number {
+  const gameState = getGameState();
+  const completedFlights = gameState.completedFlights || [];
+  const aircraftFlights = completedFlights.filter(flight => 
+    flight.routeId === routeId && flight.aircraftId === aircraftId
+  );
+  
+  return calculateRecentLoadFactor(aircraftFlights, daysBack);
+}
+
 // Get route statistics
 export function getRouteStats(): RouteStats {
   const gameState = getGameState();
   const routes = gameState.routes || [];
-
   const completedFlights = gameState.completedFlights || [];
   
   const totalRoutes = routes.length;
@@ -483,10 +715,8 @@ export function getRouteStats(): RouteStats {
   const totalRevenue = routes.reduce((sum, route) => sum + route.totalRevenue, 0);
   const totalProfit = routes.reduce((sum, route) => sum + route.totalProfit, 0);
   
-  // Calculate average load factor across all routes
-  const totalCapacity = completedFlights.reduce((sum, flight) => sum + flight.maxPassengers, 0);
-  const totalPassengers = completedFlights.reduce((sum, flight) => sum + flight.passengers, 0);
-  const averageLoadFactor = totalCapacity > 0 ? (totalPassengers / totalCapacity) * 100 : 0;
+  // Calculate average load factor for last week across all routes
+  const averageLoadFactor = calculateRecentLoadFactor(completedFlights, 7);
   
   return {
     totalRoutes,
@@ -500,28 +730,70 @@ export function getRouteStats(): RouteStats {
   };
 }
 
-// Calculate optimal pricing (simplified version)
-function calculateOptimalPricing(
-  distance: number,
-  isDomestic: boolean,
-  _originCity: unknown,
-  _destinationCity: unknown
-): number {
-  const basePrice = isDomestic ? 0.10 : 0.13; // euros per km
-  let distancePrice = distance * basePrice;
+
+
+// Process daily revenue summaries and create consolidated transactions
+export function processDailyRevenueSummaries(): void {
+  const gameState = getGameState();
+  const dailyRevenue = (gameState as any).dailyRouteRevenue || {};
   
-  // Distance-based pricing adjustments
-  if (distance < 500) {
-    distancePrice *= 1.3;
-  } else if (distance > 5000) {
-    distancePrice *= 0.85;
+  let totalDailyRevenue = 0;
+  let totalFlights = 0;
+  let totalPassengers = 0;
+  let routeCount = 0;
+  
+  // Process each route's daily summary
+  Object.values(dailyRevenue as Record<string, DailyRouteRevenue>).forEach((summary) => {
+    if (summary.totalRevenue > 0) {
+      const originAirport = getAirport(summary.originAirportId);
+      const destinationCity = getCity(summary.destinationCityId);
+      
+      // Get the route to find the destination airport
+      const route = getRoute(summary.routeId);
+      const destinationAirport = route ? getAirport(route.destinationAirportId) : null;
+      
+      // Convert Set to Array for aircraft IDs
+      const aircraftList = Array.from(summary.aircraftIds);
+      const aircraftCount = aircraftList.length;
+      
+      // Create descriptive summary - show airport to airport route, with city destination
+      const routeDescription = `${originAirport?.code || 'Unknown'} → ${destinationAirport?.code || 'Unknown'} (${destinationCity?.name || 'Unknown'})`;
+      const aircraftDescription = aircraftCount === 1 
+        ? `Aircraft ${aircraftList[0].slice(-8)}`
+        : `${aircraftCount} aircraft`;
+      
+      const description = `${routeDescription}: ${aircraftDescription}, ${summary.flightCount} flights, ${summary.totalPassengers} passengers`;
+       
+      // Add money and create transaction summary
+      addMoney(summary.totalRevenue, 'Flight Revenue', description, { silent: true });
+      
+      // Accumulate totals for notification
+      totalDailyRevenue += summary.totalRevenue;
+      totalFlights += summary.flightCount;
+      totalPassengers += summary.totalPassengers;
+      routeCount++;
+    }
+  });
+  
+  // Send notification summary if there was any revenue
+  if (totalDailyRevenue > 0) {
+    const formattedRevenue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(totalDailyRevenue);
+    
+    const routeText = routeCount === 1 ? 'route' : 'routes';
+    const flightText = totalFlights === 1 ? 'flight' : 'flights';
+    
+    const notificationText = `Daily Revenue: ${formattedRevenue} from ${totalFlights} ${flightText} across ${routeCount} ${routeText} (${totalPassengers.toLocaleString()} passengers)`;
+    
+    notificationService.success(notificationText, { category: 'Finance' });
   }
   
-  const baseFee = isDomestic ? 45 : 75;
-  const finalPrice = distancePrice + baseFee;
-  const minimumPrice = isDomestic ? 60 : 90;
-  
-  return Math.max(minimumPrice, Math.round(finalPrice));
+  // Clear daily revenue tracking for next day
+  updateGameState({ dailyRouteRevenue: {} } as any);
 }
 
 // Delete a route (only if no aircraft assigned)
