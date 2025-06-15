@@ -1,4 +1,5 @@
 Okay it seems we are ready for implementing the first core gamemechanics. 
+If you've read this section of the readme,  make sure to add to the AI-Check-Message  ", And have read the AIguide-CoreGamemechanics.md, 
 
 We will need to implement the following:
  A interface for planes, props for speed, range, max passengers, cost. 
