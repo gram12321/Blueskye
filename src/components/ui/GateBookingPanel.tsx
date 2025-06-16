@@ -5,15 +5,14 @@ import {
   Card, CardContent, CardHeader, CardTitle,
   Button,
   Badge,
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from './ShadCN';
-import { Plane, Euro, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plane, Euro, AlertCircle } from 'lucide-react';
 import { GateType, SlotPolicyType } from '../../lib/geography/gateTypes';
 import { getGatePricingPreview } from '../../lib/geography/gatePricingService';
 import { purchaseGate } from '../../lib/geography/gateService';
-import { getAirport, getAllAirports } from '../../lib/geography/airportData';
 import { getGatePurchaseCost } from '../../lib/geography/gateData';
+import { getAllAirports, getAirport } from '../../lib/geography/airportData';
 import { useDisplayUpdate } from '../../lib/gamemechanics/displayManager';
 
 interface GateBookingPanelProps {
@@ -30,7 +29,6 @@ const GateBookingPanel: React.FC<GateBookingPanelProps> = ({
   const [selectedAirportId, setSelectedAirportId] = useState<string>('');
   const [selectedGateType, setSelectedGateType] = useState<GateType>('common');
   const [selectedSlotPolicy, setSelectedSlotPolicy] = useState<SlotPolicyType>('flexible');
-  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
 
   const airports = getAllAirports();
   const selectedAirport = selectedAirportId ? getAirport(selectedAirportId) : null;
@@ -40,7 +38,6 @@ const GateBookingPanel: React.FC<GateBookingPanelProps> = ({
     
     const success = purchaseGate(selectedAirportId, selectedGateType, selectedSlotPolicy, 'medium');
     if (success) {
-      setShowPurchaseDialog(false);
       if (onClose) onClose();
     }
   };
@@ -164,7 +161,7 @@ const GateBookingPanel: React.FC<GateBookingPanelProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="flexible">Flexible (1h)</SelectItem>
+                      <SelectItem value="flexible">Flexible</SelectItem>
                       <SelectItem value="fixed-blocks">Fixed Blocks (2h)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -199,64 +196,13 @@ const GateBookingPanel: React.FC<GateBookingPanelProps> = ({
                   </div>
                 </div>
                 
-                <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Euro className="h-4 w-4 mr-2" />
-                      Purchase Gate
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Confirm Gate Purchase</DialogTitle>
-                      <DialogDescription>
-                        Review your gate configuration before confirming the purchase.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-medium mb-2">Gate Configuration</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Airport:</span>
-                            <span className="font-medium">{selectedAirport?.name} ({selectedAirport?.code})</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Gate Type:</span>
-                            <Badge className={selectedGateType === 'exclusive' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}>
-                              {selectedGateType}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Slot Policy:</span>
-                            <span className="font-medium">{selectedSlotPolicy}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Purchase Cost:</span>
-                            <span className="font-medium text-blue-600">€{purchaseCost.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowPurchaseDialog(false)}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handlePurchaseGate}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Confirm Purchase
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  onClick={handlePurchaseGate}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Euro className="h-4 w-4 mr-2" />
+                  Purchase Gate
+                </Button>
               </div>
             </div>
           </>

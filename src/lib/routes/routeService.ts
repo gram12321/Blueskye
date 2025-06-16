@@ -9,6 +9,7 @@ import { getCity } from '../geography/cityData';
 import { getAirport } from '../geography/airportData';
 import { getWaitingPassengersForPair, deliverPassengers } from '../geography/passengerDemandService';
 import { checkGateAvailability, bookGateSlot, cancelGateBooking, getGateStats } from '../geography/gateService';
+import { GateBookingRequest } from '../geography/gateTypes';
 import { HOURS_PER_DAY } from '../gamemechanics/gameTick';
 import { addMoney } from '../finance/financeService';
 import { calculateAbsoluteDays } from '../gamemechanics/utils';
@@ -67,7 +68,8 @@ export const createRoute = displayManager.createActionHandler((
   name: string,
   originAirportId: string,
   destinationAirportId: string,
-  pricePerPassenger?: number
+  pricePerPassenger?: number,
+  aircraftId?: string // Optional aircraft to assign immediately
 ): Route | null => {
   const originAirport = getAirport(originAirportId);
   const destinationAirport = getAirport(destinationAirportId);
@@ -117,6 +119,14 @@ export const createRoute = displayManager.createActionHandler((
   const gameState = getGameState();
   const currentRoutes = gameState.routes || [];
   updateGameState({ routes: [...currentRoutes, newRoute] });
+  
+  // If aircraft is provided, assign it immediately
+  if (aircraftId) {
+    // Use a small delay to ensure the route is saved before assignment
+    setTimeout(() => {
+      assignAircraftToRoute(newRoute.id, aircraftId);
+    }, 10);
+  }
   
   return newRoute;
 });
@@ -515,8 +525,20 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   // Calculate maximum possible daily flights
   const maxDailyFlights = calculateMaxDailyFlights(flightTime, originTurnTime, destinationTurnTime);
   
+  // Check for stored roundtrips information from route creation
+  const routeAssignmentData = (gameState as any).routeAssignmentData || {};
+  const assignmentInfo = routeAssignmentData[routeId];
+  let scheduledFlights = dailyFlights || maxDailyFlights;
+  
+  if (assignmentInfo && assignmentInfo.aircraftId === aircraftId && assignmentInfo.roundtripsPerDay) {
+    scheduledFlights = Math.min(assignmentInfo.roundtripsPerDay, maxDailyFlights);
+    // Clean up the temporary data
+    delete routeAssignmentData[routeId];
+    updateGameState({ routeAssignmentData } as any);
+  } else {
   // Use provided daily flights or default to maximum
-  const scheduledFlights = dailyFlights ? Math.min(dailyFlights, maxDailyFlights) : maxDailyFlights;
+    scheduledFlights = dailyFlights ? Math.min(dailyFlights, maxDailyFlights) : maxDailyFlights;
+  }
   
   // Calculate total hours per day
   const totalHoursPerDay = (originTurnTime + flightTime + destinationTurnTime + flightTime) * scheduledFlights;
@@ -526,26 +548,71 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
   const destinationCity = getCity(getAirport(route.destinationAirportId)?.cityId || '');
   const isDomestic = originCity?.country === destinationCity?.country;
   
-  // For now, we'll create a simplified gate booking system
-  // This will be enhanced when the full gate management UI is implemented
+  // Enhanced gate booking system
+  let totalGateCosts = 0;
+  const originGateBookingIds: string[] = [];
+  const destinationGateBookingIds: string[] = [];
   
-  // Check if airports have any gates available (simplified check)
+  // Calculate slot requirements
+  const originSlotDuration = Math.ceil((originTurnTime * 60) + 30); // Turn time + 30min buffer
+  const destinationSlotDuration = Math.ceil((destinationTurnTime * 60) + 30);
+  
+  // Try to book gate slots for each scheduled flight
+  for (let i = 0; i < scheduledFlights; i++) {
+    const baseHour = 8 + (i * 4); // Space flights 4 hours apart starting at 8 AM
+    
+    // Book origin slot
+    const originBookingRequest: GateBookingRequest = {
+      routeId: route.id,
+      aircraftId: aircraftId,
+      airportId: route.originAirportId,
+      preferredGateType: 'common',
+      requiredSlots: [{
+        startTime: { hour: baseHour, minute: 0 },
+        durationMinutes: originSlotDuration
+      }]
+    };
+
+    const originBookingResponse = bookGateSlot(originBookingRequest);
+    if (originBookingResponse.success && originBookingResponse.bookingId) {
+      originGateBookingIds.push(originBookingResponse.bookingId);
+      totalGateCosts += originBookingResponse.totalCost || 0;
+    }
+
+    // Book destination slot (arrival time + turn time)
+    const destinationArrivalHour = baseHour + Math.ceil(flightTime);
+    
+    const destinationBookingRequest: GateBookingRequest = {
+      routeId: route.id,
+      aircraftId: aircraftId,
+      airportId: route.destinationAirportId,
+      preferredGateType: 'common',
+      requiredSlots: [{
+        startTime: { hour: destinationArrivalHour, minute: 0 },
+        durationMinutes: destinationSlotDuration
+      }]
+    };
+
+    const destinationBookingResponse = bookGateSlot(destinationBookingRequest);
+    if (destinationBookingResponse.success && destinationBookingResponse.bookingId) {
+      destinationGateBookingIds.push(destinationBookingResponse.bookingId);
+      totalGateCosts += destinationBookingResponse.totalCost || 0;
+    }
+  }
+  
+  // Check if we have the required gates
   const currentGameState = getGameState();
   const originGates = currentGameState.airportGateStates?.[route.originAirportId] || [];
   const destinationGates = currentGameState.airportGateStates?.[route.destinationAirportId] || [];
   
-  if (originGates.length === 0 || destinationGates.length === 0) {
+  const hasRequiredGates = originGateBookingIds.length > 0 && destinationGateBookingIds.length > 0;
+  
+  if (!hasRequiredGates && (originGates.length === 0 || destinationGates.length === 0)) {
     notificationService.info(
       `Note: Gates need to be purchased at airports before full gate management is available. Route will operate with basic airport access.`,
       { category: 'Routes' }
     );
   }
-  
-  // For now, we'll proceed without strict gate booking requirements
-  // This allows the system to work while gate management is being developed
-  let totalGateCosts = 0;
-  const originGateBookingIds: string[] = [];
-  const destinationGateBookingIds: string[] = [];
   
   // Create new schedule
   const newSchedule: AircraftSchedule = {
@@ -563,7 +630,7 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
     originGateBookingIds: [...route.originGateBookingIds, ...originGateBookingIds],
     destinationGateBookingIds: [...route.destinationGateBookingIds, ...destinationGateBookingIds],
     totalGateCosts: route.totalGateCosts + totalGateCosts,
-    hasRequiredGates: originGates.length > 0 && destinationGates.length > 0,
+    hasRequiredGates: hasRequiredGates,
     isActive: true
   };
   
@@ -580,7 +647,7 @@ export const assignAircraftToRoute = displayManager.createActionHandler((
     }).format(totalGateCosts);
     
     notificationService.success(
-      `Aircraft assigned to route with gate bookings (Daily gate cost: ${formattedCost})`,
+      `Aircraft assigned to route with ${originGateBookingIds.length + destinationGateBookingIds.length} gate bookings (Daily gate cost: ${formattedCost})`,
       { category: 'Routes' }
     );
   } else {
@@ -804,8 +871,6 @@ export function getRouteStats(): RouteStats {
     averageLoadFactor: Math.round(averageLoadFactor * 10) / 10
   };
 }
-
-
 
 // Process daily revenue summaries and create consolidated transactions
 export function processDailyRevenueSummaries(): void {
